@@ -193,11 +193,13 @@
         html += '<td>' + escapeHtml(p.project_name || '—') + '</td>';
         html += '<td>' + formatDate(p.created_date) + '</td>';
         html += '<td>' + (p.due_now_cents > 0 ? formatCurrency(p.due_now_cents, p.currency) : '—') + '</td>';
-        html += '<td>' + getStatusBadge(p.status) + '</td>';
-        html += '<td class="actions-cell">';
+        html += '<td>' + getStatusBadge(p.status) + '</td>';        html += '<td class="actions-cell">';
         html += '<a href="/' + encodeURIComponent(p.slug) + '" target="_blank" class="action-btn action-view" title="View Proposal">&#128065;</a>';
         html += '<a href="/builder/' + encodeURIComponent(p.slug) + '" class="action-btn action-edit" title="Edit Proposal">&#9998;</a>';
-        html += '<button class="action-btn action-download" title="Download JSON" onclick="downloadProposal(\'' + escapeHtml(p.slug) + '\')">&#128229;</button>';
+        if (p.status === 'signed' || p.status === 'paid') {
+          html += '<a href="/' + encodeURIComponent(p.slug) + '" target="_blank" class="action-btn action-download" title="Download Signed PDF">&#128196;</a>';
+        }
+        html += '<button class="action-btn action-download" title="Download JSON" onclick="downloadProposal(\'' + escapeHtml(p.slug) + '\')">⬇</button>';
         html += '<button class="action-btn action-delete" title="Delete Proposal" onclick="deleteProposal(\'' + escapeHtml(p.slug) + '\', this)">&#128465;</button>';
         html += '</td>';
         html += '</tr>';

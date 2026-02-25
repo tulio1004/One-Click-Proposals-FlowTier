@@ -214,21 +214,21 @@
       btn.textContent = 'Generating PDF...';
     }
 
-    // Hide signature block and PDF button for clean print
-    var sigBlock = document.getElementById('signatureBlock');
+    // Hide only the PDF button and pay button for clean print (keep signature visible)
     var pdfBtnWrap = document.getElementById('pdfDownloadWrap');
-    if (sigBlock) sigBlock.style.display = 'none';
+    var payBtn = document.getElementById('payNowBtn');
     if (pdfBtnWrap) pdfBtnWrap.style.display = 'none';
+    if (payBtn) payBtn.style.display = 'none';
 
     setTimeout(function () {
       window.print();
 
       // Restore
-      if (sigBlock) sigBlock.style.display = '';
       if (pdfBtnWrap) pdfBtnWrap.style.display = '';
+      if (payBtn) payBtn.style.display = '';
       if (btn) {
         btn.disabled = false;
-        btn.textContent = 'Download PDF';
+        btn.textContent = '\uD83D\uDCC4 Download Signed Proposal (PDF)';
       }
     }, 300);
   };
@@ -288,12 +288,7 @@
     html += '</div>';
     html += '</div></div>';
 
-    // ============================
-    // PDF Download Button
-    // ============================
-    html += '<div class="pdf-download-wrap" id="pdfDownloadWrap">';
-    html += '<button class="btn btn-secondary" id="downloadPdfBtn" onclick="downloadPDF()">&#128196; Download PDF</button>';
-    html += '</div>';
+    // PDF Download Button — only shown after signing (injected by renderSignedConfirmation)
 
     // ============================
     // 2) Executive Summary
@@ -664,6 +659,11 @@
       html += '</div>';
     }
 
+    // PDF Download — available after signing
+    html += '<div class="pdf-download-wrap" id="pdfDownloadWrap" style="margin-top:24px;">';
+    html += '<button class="btn btn-secondary" id="downloadPdfBtn" onclick="downloadPDF()">&#128196; Download Signed Proposal (PDF)</button>';
+    html += '</div>';
+
     html += '</div>';
     return html;
   }
@@ -674,10 +674,22 @@
     html += '<h3>Payment Received</h3>';
     if (signature) {
       html += '<p><strong>' + escapeHtml(signature.name) + '</strong></p>';
+      // Show signature in paid confirmation too
+      if (signature.signature_data && signature.signature_type === 'drawn') {
+        html += '<div class="sig-display"><img src="' + signature.signature_data + '" alt="Signature" class="sig-image"></div>';
+      } else if (signature.signature_data && signature.signature_type === 'typed') {
+        html += '<div class="sig-display sig-typed-display">' + escapeHtml(signature.signature_data) + '</div>';
+      }
     }
     html += '<p>Amount paid: <strong>' + formatCurrency(payment.amount_cents || 0, currency) + '</strong></p>';
     html += '<p style="color:var(--color-text-muted);font-size:0.8125rem;">Paid on ' + escapeHtml(formatDate(payment.paid_at)) + '</p>';
     html += '<p style="color:var(--color-success);font-weight:600;margin-top:12px;">Thank you! We will begin work shortly.</p>';
+
+    // PDF Download — available after payment too
+    html += '<div class="pdf-download-wrap" id="pdfDownloadWrap" style="margin-top:24px;">';
+    html += '<button class="btn btn-secondary" id="downloadPdfBtn" onclick="downloadPDF()">&#128196; Download Signed Proposal (PDF)</button>';
+    html += '</div>';
+
     html += '</div>';
     return html;
   }
