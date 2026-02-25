@@ -22,6 +22,7 @@
           <h1>Proposal Builder</h1>
         </div>
         <div class="action-bar">
+          <a href="/" class="btn btn-secondary btn-sm" style="text-decoration:none;">Dashboard</a>
           <button class="btn btn-secondary btn-sm" onclick="copyJSON()">Copy JSON</button>
           <button class="btn btn-secondary btn-sm" onclick="downloadJSON()">Download JSON</button>
           <button class="btn btn-secondary btn-sm" onclick="loadJSON()">Load JSON</button>
@@ -68,7 +69,10 @@
           </div>
           <div class="form-group">
             <label for="proposalId">Proposal ID</label>
-            <input type="text" id="proposalId" placeholder="PROP-001">
+            <div class="dropdown-add-row">
+              <input type="text" id="proposalId" placeholder="FT26P01" style="flex:1;">
+              <button class="btn btn-primary btn-sm" type="button" onclick="generateProposalId()">Generate</button>
+            </div>
           </div>
         </div>
         <div class="form-row">
@@ -161,19 +165,24 @@
         <div class="pricing-header-row">
           <span class="ph-name">Item</span>
           <span class="ph-type">Type</span>
-          <span class="ph-setup">Setup / One-Time</span>
-          <span class="ph-monthly">Monthly</span>
+          <span class="ph-amount">Amount</span>
           <span class="ph-action"></span>
         </div>
         <div id="pricingItems"></div>
         <button class="add-item-btn" onclick="addPricingItem()">+ Add Line Item</button>
-        <div class="pricing-total" id="pricingTotal">
-          <span class="total-label">Total Setup/One-Time:</span>
-          <span class="total-amount" id="totalSetup">$0.00</span>
-        </div>
-        <div class="pricing-total" id="pricingTotalMonthly" style="margin-top:4px;">
-          <span class="total-label">Total Monthly:</span>
-          <span class="total-amount" id="totalMonthly">$0.00</span>
+        <div class="pricing-totals-block">
+          <div class="pricing-total-row">
+            <span class="total-label">Total One-Time:</span>
+            <span class="total-amount" id="totalOneTime">$0.00</span>
+          </div>
+          <div class="pricing-total-row">
+            <span class="total-label">Total Setup Fees:</span>
+            <span class="total-amount" id="totalSetup">$0.00</span>
+          </div>
+          <div class="pricing-total-row">
+            <span class="total-label">Total Monthly:</span>
+            <span class="total-amount" id="totalMonthly">$0.00</span>
+          </div>
         </div>
         <div class="pricing-due-now">
           <div class="form-group">
@@ -232,6 +241,21 @@
         </div>
       </div>
 
+      <!-- J) Terms & Conditions -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">J</span> Terms & Conditions
+        </div>
+        <p style="color:var(--color-text-muted);font-size:0.8125rem;margin-bottom:12px;">
+          Edit the terms template below. Use <code>{{company_name}}</code> as a placeholder for the client's company name and <code>{{date}}</code> for the proposal date. Changes are saved on the server and persist across sessions.
+        </p>
+        <div class="form-group">
+          <textarea id="termsTemplate" rows="12" placeholder="Loading terms..." style="font-size:0.8125rem;line-height:1.7;"></textarea>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="saveTerms()">Save Terms</button>
+        <span id="termsSaveStatus" style="margin-left:12px;font-size:0.8125rem;"></span>
+      </div>
+
       <!-- Webhook (persistent) -->
       <div class="webhook-section">
         <h3>Make.com Webhook</h3>
@@ -246,9 +270,24 @@
         <div id="webhookSaveStatus" style="margin-top:8px;font-size:0.8125rem;"></div>
       </div>
 
+      <!-- JSON Import -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">K</span> Import from JSON
+        </div>
+        <p style="color:var(--color-text-muted);font-size:0.8125rem;margin-bottom:12px;">
+          Paste a full proposal JSON below to populate all fields automatically.
+        </p>
+        <div class="form-group">
+          <textarea id="jsonImportField" rows="6" placeholder='Paste JSON here...' style="font-family:var(--font-mono);font-size:0.75rem;"></textarea>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="importFromJSON()">Import JSON</button>
+        <span id="jsonImportStatus" style="margin-left:12px;font-size:0.8125rem;"></span>
+      </div>
+
       <!-- Submit Proposal -->
-      <div class="builder-section" style="border:2px solid var(--color-primary);background:var(--color-primary-light);">
-        <h3 style="color:var(--color-primary);margin-bottom:8px;">Create & Send Proposal</h3>
+      <div class="create-proposal-section-solid">
+        <h3>Create & Send Proposal</h3>
         <p style="color:var(--color-text-secondary);font-size:0.8125rem;margin-bottom:16px;">This will save the proposal on the server, generate a unique URL, and send the link + client details to your Make.com webhook.</p>
         <button class="btn btn-primary" onclick="createProposal()" style="width:100%;padding:14px;font-size:1rem;">
           Create Proposal & Send to Make.com

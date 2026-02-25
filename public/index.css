@@ -1709,3 +1709,582 @@ textarea {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ============================================
+   DASHBOARD PAGE
+   ============================================ */
+.dashboard-page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  padding: 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.dashboard-logo {
+  width: 160px;
+  height: auto;
+}
+
+.dashboard-header-left h1 {
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-subtitle {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.dashboard-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Stats Cards */
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  text-align: center;
+  transition: border-color var(--transition);
+}
+
+.stat-card:hover {
+  border-color: rgba(0, 230, 118, 0.15);
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.stat-pending {
+  color: var(--color-warning) !important;
+}
+
+.stat-signed {
+  color: #64B5F6 !important;
+}
+
+.stat-paid {
+  color: var(--color-success) !important;
+}
+
+.stat-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* Filter Bar */
+.dashboard-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+
+.filter-tab {
+  padding: 8px 18px;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.filter-tab:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-hover);
+}
+
+.filter-tab.active {
+  color: var(--color-text-on-primary);
+  background: var(--gradient-primary);
+  box-shadow: var(--shadow-glow);
+}
+
+.filter-search input {
+  width: 260px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+}
+
+/* Proposals Table */
+.dashboard-table-wrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard-table thead th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dashboard-table tbody tr {
+  transition: background var(--transition);
+}
+
+.dashboard-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dashboard-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  vertical-align: middle;
+}
+
+.proposal-id-badge {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-glow);
+  border: 1px solid rgba(0, 230, 118, 0.15);
+  padding: 3px 10px;
+  border-radius: 100px;
+}
+
+.client-cell strong {
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.client-company {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 100px;
+  letter-spacing: 0.02em;
+}
+
+.status-pending {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid rgba(255, 183, 77, 0.2);
+}
+
+.status-signed {
+  background: rgba(100, 181, 246, 0.1);
+  color: #64B5F6;
+  border: 1px solid rgba(100, 181, 246, 0.2);
+}
+
+.status-paid {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid rgba(0, 230, 118, 0.2);
+}
+
+/* Action Buttons */
+.actions-cell {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all var(--transition);
+  text-decoration: none;
+}
+
+.action-btn:hover {
+  background: var(--color-surface-hover);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--color-text);
+}
+
+.action-view:hover {
+  border-color: rgba(0, 230, 118, 0.3);
+  color: var(--color-primary);
+  background: var(--color-primary-glow);
+}
+
+.action-edit:hover {
+  border-color: rgba(100, 181, 246, 0.3);
+  color: #64B5F6;
+  background: rgba(100, 181, 246, 0.08);
+}
+
+.action-download:hover {
+  border-color: rgba(255, 183, 77, 0.3);
+  color: #FFB74D;
+  background: rgba(255, 183, 77, 0.08);
+}
+
+.action-delete:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+/* Empty State */
+.dashboard-empty {
+  text-align: center;
+  padding: 80px 24px;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.dashboard-empty h3 {
+  font-size: 1.25rem;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+
+.dashboard-empty p {
+  color: var(--color-text-muted);
+  margin-bottom: 24px;
+}
+
+/* ============================================
+   SIGNATURE PAD (type or draw)
+   ============================================ */
+.signature-mode-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+
+.sig-tab {
+  padding: 8px 20px;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.sig-tab:hover {
+  color: var(--color-text-secondary);
+}
+
+.sig-tab.active {
+  color: var(--color-text-on-primary);
+  background: var(--gradient-primary);
+  box-shadow: var(--shadow-glow);
+}
+
+.signature-type-preview {
+  font-family: 'Dancing Script', 'Brush Script MT', cursive;
+  font-size: 2rem;
+  color: var(--color-text);
+  text-align: center;
+  padding: 24px;
+  min-height: 80px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.signature-draw-canvas-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.signature-draw-canvas {
+  width: 100%;
+  height: 150px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.canvas-clear-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 12px;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.canvas-clear-btn:hover {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+/* ============================================
+   PDF DOWNLOAD BUTTON
+   ============================================ */
+.pdf-download-wrap {
+  text-align: center;
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 1px solid var(--color-border);
+}
+
+.pdf-download-wrap .btn {
+  padding: 12px 32px;
+  font-size: 0.9375rem;
+}
+
+/* ============================================
+   CREATE & SEND SECTION (solid box)
+   ============================================ */
+.create-send-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.create-send-section h3 {
+  font-size: 0.9375rem;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+
+.create-send-section p {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+
+.create-send-section .btn-primary {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+}
+
+/* ============================================
+   JSON IMPORT SECTION
+   ============================================ */
+.json-import-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.json-import-section h3 {
+  font-size: 0.9375rem;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+
+.json-import-section p {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.json-import-section textarea {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  min-height: 120px;
+  margin-bottom: 12px;
+}
+
+/* ============================================
+   PROPOSAL ID SECTION
+   ============================================ */
+.proposal-id-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.proposal-id-section input {
+  flex: 1;
+}
+
+.proposal-id-section .btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   TERMS EDITOR (builder)
+   ============================================ */
+.terms-editor-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.terms-editor-section h3 {
+  font-size: 0.9375rem;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+
+.terms-editor-section p {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.terms-editor-section textarea {
+  font-size: 0.8125rem;
+  min-height: 200px;
+  line-height: 1.7;
+}
+
+/* ============================================
+   PRICING TABLE — 3 type model
+   ============================================ */
+.pricing-type-setup_fee {
+  background: rgba(206, 147, 216, 0.1);
+  color: #CE93D8;
+  border: 1px solid rgba(206, 147, 216, 0.2);
+}
+
+.pricing-type-monthly {
+  background: rgba(255, 183, 77, 0.1);
+  color: #FFB74D;
+  border: 1px solid rgba(255, 183, 77, 0.2);
+}
+
+/* ============================================
+   DASHBOARD RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .dashboard-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-search input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: 16px;
+  }
+
+  .dashboard-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-table-wrap {
+    overflow-x: auto;
+  }
+
+  .dashboard-table {
+    min-width: 700px;
+  }
+
+  .dashboard-header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}

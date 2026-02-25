@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — FlowTier Proposals</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/index.css">
+</head>
+<body>
+  <div class="dashboard-page">
+
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div class="dashboard-header-left">
+        <img src="/static/images/logo.webp" alt="FlowTier" class="dashboard-logo">
+        <div>
+          <h1>Proposal Dashboard</h1>
+          <p class="dashboard-subtitle">Manage all your proposals in one place</p>
+        </div>
+      </div>
+      <div class="dashboard-header-right">
+        <a href="/builder" class="btn btn-primary">+ New Proposal</a>
+        <a href="/logout" class="btn btn-secondary btn-sm">Logout</a>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="dashboard-stats" id="dashboardStats">
+      <div class="stat-card">
+        <div class="stat-number" id="statTotal">—</div>
+        <div class="stat-label">Total Proposals</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number stat-pending" id="statPending">—</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number stat-signed" id="statSigned">—</div>
+        <div class="stat-label">Signed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number stat-paid" id="statPaid">—</div>
+        <div class="stat-label">Paid</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="dashboard-filter-bar">
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all" onclick="filterProposals('all', this)">All</button>
+        <button class="filter-tab" data-filter="pending" onclick="filterProposals('pending', this)">Pending</button>
+        <button class="filter-tab" data-filter="signed" onclick="filterProposals('signed', this)">Signed</button>
+        <button class="filter-tab" data-filter="paid" onclick="filterProposals('paid', this)">Paid</button>
+      </div>
+      <div class="filter-search">
+        <input type="text" id="searchInput" placeholder="Search proposals..." oninput="searchProposals(this.value)">
+      </div>
+    </div>
+
+    <!-- Proposals Table -->
+    <div class="dashboard-table-wrap">
+      <table class="dashboard-table" id="proposalsTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client</th>
+            <th>Project</th>
+            <th>Date</th>
+            <th>Due Now</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="proposalsBody">
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--color-text-muted);">Loading proposals...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div class="dashboard-empty" id="emptyState" style="display:none;">
+      <div class="empty-icon">📋</div>
+      <h3>No proposals yet</h3>
+      <p>Create your first proposal to get started.</p>
+      <a href="/builder" class="btn btn-primary">Create Proposal</a>
+    </div>
+
+  </div>
+
+  <script>
+    var allProposals = [];
+    var currentFilter = 'all';
+
+    var currencySymbols = { usd: '$', eur: '€', gbp: '£', cad: 'CA$', aud: 'A$', brl: 'R$' };
+
+    function formatCurrency(cents, currency) {
+      var amount = (cents / 100).toFixed(2);
+      var sym = currencySymbols[(currency || 'usd').toLowerCase()] || '$';
+      return sym + amount.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      var d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function getStatusBadge(status) {
+      var classes = {
+        'pending': 'status-badge status-pending',
+        'signed': 'status-badge status-signed',
+        'paid': 'status-badge status-paid'
+      };
+      var labels = {
+        'pending': 'Pending',
+        'signed': 'Signed',
+        'paid': 'Paid'
+      };
+      return '<span class="' + (classes[status] || 'status-badge status-pending') + '">' + (labels[status] || 'Pending') + '</span>';
+    }
+
+    function loadProposals() {
+      fetch('/api/proposals')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          allProposals = data.proposals || [];
+          updateStats();
+          renderTable();
+        })
+        .catch(function (err) {
+          console.error('Error loading proposals:', err);
+          document.getElementById('proposalsBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ff5252;">Error loading proposals.</td></tr>';
+        });
+    }
+
+    function updateStats() {
+      var total = allProposals.length;
+      var pending = allProposals.filter(function (p) { return p.status === 'pending'; }).length;
+      var signed = allProposals.filter(function (p) { return p.status === 'signed'; }).length;
+      var paid = allProposals.filter(function (p) { return p.status === 'paid'; }).length;
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statPending').textContent = pending;
+      document.getElementById('statSigned').textContent = signed;
+      document.getElementById('statPaid').textContent = paid;
+    }
+
+    function renderTable() {
+      var filtered = allProposals;
+      if (currentFilter !== 'all') {
+        filtered = allProposals.filter(function (p) { return p.status === currentFilter; });
+      }
+
+      var searchVal = (document.getElementById('searchInput').value || '').toLowerCase();
+      if (searchVal) {
+        filtered = filtered.filter(function (p) {
+          return (p.client_name || '').toLowerCase().indexOf(searchVal) !== -1 ||
+                 (p.client_company || '').toLowerCase().indexOf(searchVal) !== -1 ||
+                 (p.project_name || '').toLowerCase().indexOf(searchVal) !== -1 ||
+                 (p.proposal_id || '').toLowerCase().indexOf(searchVal) !== -1 ||
+                 (p.slug || '').toLowerCase().indexOf(searchVal) !== -1;
+        });
+      }
+
+      var tbody = document.getElementById('proposalsBody');
+      var empty = document.getElementById('emptyState');
+
+      if (allProposals.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--color-text-muted);">No proposals match your filter.</td></tr>';
+        return;
+      }
+
+      var html = '';
+      filtered.forEach(function (p) {
+        html += '<tr>';
+        html += '<td><span class="proposal-id-badge">' + escapeHtml(p.proposal_id || '—') + '</span></td>';
+        html += '<td>';
+        html += '<div class="client-cell">';
+        html += '<strong>' + escapeHtml(p.client_name || '—') + '</strong>';
+        if (p.client_company) html += '<br><span class="client-company">' + escapeHtml(p.client_company) + '</span>';
+        html += '</div></td>';
+        html += '<td>' + escapeHtml(p.project_name || '—') + '</td>';
+        html += '<td>' + formatDate(p.created_date) + '</td>';
+        html += '<td>' + (p.due_now_cents > 0 ? formatCurrency(p.due_now_cents, p.currency) : '—') + '</td>';
+        html += '<td>' + getStatusBadge(p.status) + '</td>';
+        html += '<td class="actions-cell">';
+        html += '<a href="/' + encodeURIComponent(p.slug) + '" target="_blank" class="action-btn action-view" title="View Proposal">&#128065;</a>';
+        html += '<a href="/builder/' + encodeURIComponent(p.slug) + '" class="action-btn action-edit" title="Edit Proposal">&#9998;</a>';
+        html += '<button class="action-btn action-download" title="Download JSON" onclick="downloadProposal(\'' + escapeHtml(p.slug) + '\')">&#128229;</button>';
+        html += '<button class="action-btn action-delete" title="Delete Proposal" onclick="deleteProposal(\'' + escapeHtml(p.slug) + '\', this)">&#128465;</button>';
+        html += '</td>';
+        html += '</tr>';
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function filterProposals(filter, btn) {
+      currentFilter = filter;
+      var tabs = document.querySelectorAll('.filter-tab');
+      tabs.forEach(function (t) { t.classList.remove('active'); });
+      if (btn) btn.classList.add('active');
+      renderTable();
+    }
+
+    function searchProposals(val) {
+      renderTable();
+    }
+
+    function deleteProposal(slug, btn) {
+      if (!confirm('Are you sure you want to delete this proposal? This cannot be undone.')) return;
+
+      var row = btn.closest('tr');
+      if (row) row.style.opacity = '0.5';
+
+      fetch('/api/proposals/' + encodeURIComponent(slug), { method: 'DELETE' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            allProposals = allProposals.filter(function (p) { return p.slug !== slug; });
+            updateStats();
+            renderTable();
+          } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+            if (row) row.style.opacity = '1';
+          }
+        })
+        .catch(function (err) {
+          alert('Error deleting proposal: ' + err.message);
+          if (row) row.style.opacity = '1';
+        });
+    }
+
+    function downloadProposal(slug) {
+      fetch('/api/proposals/' + encodeURIComponent(slug))
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = slug + '.json';
+          a.click();
+          URL.revokeObjectURL(url);
+        })
+        .catch(function (err) {
+          alert('Error downloading: ' + err.message);
+        });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Load on page ready
+    loadProposals();
+  </script>
+</body>
+</html>

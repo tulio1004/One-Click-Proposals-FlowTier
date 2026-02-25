@@ -194,33 +194,38 @@
   function init() {
     populateDropdown();
     loadWebhookUrl();
+    loadTermsTemplate();
     setDefaultDate();
     attachChangeListeners();
     setupAutoSlug();
     schedulePreviewUpdate();
 
-    // Fix: capture dropdown value on change and on any interaction
-    const dropdown = document.getElementById('systemDropdown');
+    // Fix: capture dropdown value on change
+    var dropdown = document.getElementById('systemDropdown');
     if (dropdown) {
       dropdown.addEventListener('change', function () {
         dropdown._lastValue = dropdown.value;
       });
-      // Also capture on mousedown/focus to handle edge cases
       dropdown.addEventListener('mousedown', function () {
         if (dropdown.value) dropdown._lastValue = dropdown.value;
       });
     }
-    const addBtn = document.getElementById('addSystemBtn');
+    var addBtn = document.getElementById('addSystemBtn');
     if (addBtn) {
       addBtn.addEventListener('click', function (e) {
         e.preventDefault();
-        // Read value directly at click time
-        const select = document.getElementById('systemDropdown');
+        var select = document.getElementById('systemDropdown');
         if (!select.value && select._lastValue) {
           select.value = select._lastValue;
         }
         addSelectedSystem();
       });
+    }
+
+    // Check if editing an existing proposal (URL: /builder/slug)
+    var pathParts = window.location.pathname.split('/');
+    if (pathParts.length >= 3 && pathParts[1] === 'builder' && pathParts[2]) {
+      loadExistingProposal(pathParts[2]);
     }
   }
 
@@ -229,10 +234,10 @@
   }
 
   function populateDropdown() {
-    const select = document.getElementById('systemDropdown');
+    var select = document.getElementById('systemDropdown');
     select.innerHTML = '<option value="">— Select a system to add —</option>';
-    SYSTEMS_LIBRARY.forEach(sys => {
-      const opt = document.createElement('option');
+    SYSTEMS_LIBRARY.forEach(function (sys) {
+      var opt = document.createElement('option');
       opt.value = sys.id;
       opt.textContent = sys.name;
       select.appendChild(opt);
@@ -240,33 +245,47 @@
   }
 
   // ============================================
+  // LOAD EXISTING PROPOSAL (for editing)
+  // ============================================
+  function loadExistingProposal(slug) {
+    fetch('/api/proposals/' + encodeURIComponent(slug))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.slug) {
+          populateFromJSON(data);
+          showToast('Loaded proposal: ' + slug);
+        }
+      })
+      .catch(function (err) {
+        console.error('Error loading proposal:', err);
+      });
+  }
+
+  // ============================================
   // AUTO-SLUG GENERATION
   // ============================================
   function setupAutoSlug() {
-    const companyInput = document.getElementById('clientCompany');
-    const nameInput = document.getElementById('clientName');
-    const slugInput = document.getElementById('proposalSlug');
+    var companyInput = document.getElementById('clientCompany');
+    var nameInput = document.getElementById('clientName');
+    var slugInput = document.getElementById('proposalSlug');
 
     function generateSlug() {
-      const company = companyInput.value.trim();
-      const name = nameInput.value.trim();
-      const base = company || name || '';
+      var company = companyInput.value.trim();
+      var name = nameInput.value.trim();
+      var base = company || name || '';
       if (!base) {
         slugInput.value = '';
         return;
       }
-      // Create slug: lowercase, replace spaces/special chars with hyphens
-      let slug = base.toLowerCase()
+      var slug = base.toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
 
-      // Add a short unique suffix to avoid collisions
-      const date = new Date();
-      const suffix = date.getFullYear().toString().slice(-2) + (date.getMonth() + 1).toString().padStart(2, '0');
+      var date = new Date();
+      var suffix = date.getFullYear().toString().slice(-2) + (date.getMonth() + 1).toString().padStart(2, '0');
       slug = slug + '-' + suffix;
-
       slugInput.value = slug;
     }
 
@@ -275,29 +294,84 @@
   }
 
   // ============================================
+  // PROPOSAL ID GENERATOR
+  // ============================================
+  window.generateProposalId = function () {
+    fetch('/api/generate-id')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.proposal_id) {
+          document.getElementById('proposalId').value = data.proposal_id;
+          showToast('Generated ID: ' + data.proposal_id);
+          schedulePreviewUpdate();
+        }
+      })
+      .catch(function (err) {
+        alert('Error generating ID: ' + err.message);
+      });
+  };
+
+  // ============================================
+  // TERMS TEMPLATE — Load & Save
+  // ============================================
+  function loadTermsTemplate() {
+    fetch('/api/terms')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.template) {
+          document.getElementById('termsTemplate').value = data.template;
+        }
+      })
+      .catch(function () { /* ignore */ });
+  }
+
+  window.saveTerms = function () {
+    var template = document.getElementById('termsTemplate').value;
+    var statusEl = document.getElementById('termsSaveStatus');
+
+    fetch('/api/terms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template: template })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success) {
+        statusEl.innerHTML = '<span style="color:var(--color-success);">Terms saved successfully.</span>';
+      } else {
+        statusEl.innerHTML = '<span style="color:var(--color-danger);">Failed to save.</span>';
+      }
+      setTimeout(function () { statusEl.innerHTML = ''; }, 3000);
+    })
+    .catch(function (err) {
+      statusEl.innerHTML = '<span style="color:var(--color-danger);">Error: ' + err.message + '</span>';
+    });
+  };
+
+  // ============================================
   // SYSTEM DROPDOWN + ADD
   // ============================================
   window.addSelectedSystem = function () {
-    const select = document.getElementById('systemDropdown');
-    const id = select.value || select._lastValue;
+    var select = document.getElementById('systemDropdown');
+    var id = select.value || select._lastValue;
     if (!id) return alert('Please select a system from the dropdown.');
 
-    if (id !== 'custom_automation' && addedSystems.find(s => s.id === id)) {
+    if (id !== 'custom_automation' && addedSystems.find(function (s) { return s.id === id; })) {
       return alert('This system has already been added.');
     }
 
-    const lib = SYSTEMS_LIBRARY.find(s => s.id === id);
+    var lib = SYSTEMS_LIBRARY.find(function (s) { return s.id === id; });
     if (!lib) return;
 
-    const system = {
+    var system = {
       id: id,
       uid: id + '_' + Date.now(),
       name: lib.name,
       description: lib.description,
       image: lib.image,
       draft_notes: lib.description,
-      deliverables: [...lib.deliverables],
-      requirements: [...lib.requirements]
+      deliverables: lib.deliverables.slice(),
+      requirements: lib.requirements.slice()
     };
 
     addedSystems.push(system);
@@ -307,41 +381,45 @@
   };
 
   window.removeSystem = function (uid) {
-    addedSystems = addedSystems.filter(s => s.uid !== uid);
+    addedSystems = addedSystems.filter(function (s) { return s.uid !== uid; });
     renderAddedSystems();
     schedulePreviewUpdate();
   };
 
   window.moveSystemUp = function (uid) {
-    const idx = addedSystems.findIndex(s => s.uid === uid);
+    var idx = addedSystems.findIndex(function (s) { return s.uid === uid; });
     if (idx > 0) {
-      [addedSystems[idx - 1], addedSystems[idx]] = [addedSystems[idx], addedSystems[idx - 1]];
+      var temp = addedSystems[idx - 1];
+      addedSystems[idx - 1] = addedSystems[idx];
+      addedSystems[idx] = temp;
       renderAddedSystems();
       schedulePreviewUpdate();
     }
   };
 
   window.moveSystemDown = function (uid) {
-    const idx = addedSystems.findIndex(s => s.uid === uid);
+    var idx = addedSystems.findIndex(function (s) { return s.uid === uid; });
     if (idx < addedSystems.length - 1) {
-      [addedSystems[idx], addedSystems[idx + 1]] = [addedSystems[idx + 1], addedSystems[idx]];
+      var temp = addedSystems[idx];
+      addedSystems[idx] = addedSystems[idx + 1];
+      addedSystems[idx + 1] = temp;
       renderAddedSystems();
       schedulePreviewUpdate();
     }
   };
 
   function renderAddedSystems() {
-    const container = document.getElementById('addedSystemsList');
+    var container = document.getElementById('addedSystemsList');
     if (addedSystems.length === 0) {
       container.innerHTML = '<div class="empty-state">No systems added yet. Select one from the dropdown above.</div>';
       return;
     }
 
-    let html = '';
-    addedSystems.forEach((sys, idx) => {
-      const isCustom = sys.id === 'custom_automation';
-      const isFirst = idx === 0;
-      const isLast = idx === addedSystems.length - 1;
+    var html = '';
+    addedSystems.forEach(function (sys, idx) {
+      var isCustom = sys.id === 'custom_automation';
+      var isFirst = idx === 0;
+      var isLast = idx === addedSystems.length - 1;
 
       html += '<div class="system-card-builder" data-uid="' + sys.uid + '">';
       html += '<div class="system-card-header">';
@@ -397,7 +475,7 @@
   }
 
   window.updateSystemField = function (uid, field, value) {
-    const sys = addedSystems.find(s => s.uid === uid);
+    var sys = addedSystems.find(function (s) { return s.uid === uid; });
     if (sys) {
       sys[field] = value;
       schedulePreviewUpdate();
@@ -419,8 +497,8 @@
   // SCOPE OF WORK
   // ============================================
   function renderScopeItems() {
-    const container = document.getElementById('scopeList');
-    let html = '<ul class="editable-list">';
+    var container = document.getElementById('scopeList');
+    var html = '<ul class="editable-list">';
     scopeItems.forEach(function (item, i) {
       html += '<li><input type="text" value="' + escapeAttr(item) + '" data-scope-idx="' + i + '" oninput="updateScopeItem(this)"><button class="btn-icon" onclick="removeScopeItem(' + i + ')" title="Remove">&times;</button></li>';
     });
@@ -452,8 +530,8 @@
   // TIMELINE / MILESTONES
   // ============================================
   function renderMilestones() {
-    const container = document.getElementById('milestoneList');
-    let html = '';
+    var container = document.getElementById('milestoneList');
+    var html = '';
     milestones.forEach(function (m, i) {
       html += '<div class="milestone-row">';
       html += '<input type="text" value="' + escapeAttr(m.title) + '" placeholder="Title" oninput="updateMilestone(' + i + ', \'title\', this.value)">';
@@ -483,25 +561,21 @@
   };
 
   // ============================================
-  // PRICING — One-Time or Setup+Monthly per item
+  // PRICING — 3 Types: One-Time, Setup Fee, Monthly
   // ============================================
   function renderPricingItems() {
-    const container = document.getElementById('pricingItems');
-    let html = '';
+    var container = document.getElementById('pricingItems');
+    var html = '';
     pricingLineItems.forEach(function (item, i) {
       var ptype = item.pricing_type || 'one_time';
       html += '<div class="pricing-row-v2">';
       html += '<input type="text" class="pr-name" value="' + escapeAttr(item.name) + '" placeholder="Item name" oninput="updatePricingItem(' + i + ', \'name\', this.value)">';
-      html += '<select class="pr-type" onchange="updatePricingItem(' + i + ', \'pricing_type\', this.value); renderPricingItems();">';
+      html += '<select class="pr-type" onchange="updatePricingItem(' + i + ', \'pricing_type\', this.value); renderPricingItemsGlobal();">';
       html += '<option value="one_time"' + (ptype === 'one_time' ? ' selected' : '') + '>One-Time</option>';
-      html += '<option value="setup_monthly"' + (ptype === 'setup_monthly' ? ' selected' : '') + '>Setup + Monthly</option>';
+      html += '<option value="setup_fee"' + (ptype === 'setup_fee' ? ' selected' : '') + '>Setup Fee</option>';
+      html += '<option value="monthly"' + (ptype === 'monthly' ? ' selected' : '') + '>Monthly</option>';
       html += '</select>';
-      html += '<input type="number" class="pr-setup" value="' + ((item.setup_cents || 0) / 100).toFixed(2) + '" placeholder="0.00" step="0.01" min="0" oninput="updatePricingSetup(' + i + ', this.value)">';
-      if (ptype === 'setup_monthly') {
-        html += '<input type="number" class="pr-monthly" value="' + ((item.monthly_cents || 0) / 100).toFixed(2) + '" placeholder="0.00" step="0.01" min="0" oninput="updatePricingMonthly(' + i + ', this.value)">';
-      } else {
-        html += '<div class="pr-monthly-placeholder"></div>';
-      }
+      html += '<input type="number" class="pr-amount" value="' + ((item.amount_cents || 0) / 100).toFixed(2) + '" placeholder="0.00" step="0.01" min="0" oninput="updatePricingAmount(' + i + ', this.value)">';
       html += '<button class="btn-icon" onclick="removePricingItem(' + i + ')" title="Remove">&times;</button>';
       html += '</div>';
     });
@@ -509,8 +583,14 @@
     updatePricingTotals();
   }
 
+  // Expose for inline onchange
+  window.renderPricingItemsGlobal = function () {
+    renderPricingItems();
+    schedulePreviewUpdate();
+  };
+
   window.addPricingItem = function () {
-    pricingLineItems.push({ name: '', pricing_type: 'one_time', setup_cents: 0, monthly_cents: 0 });
+    pricingLineItems.push({ name: '', pricing_type: 'one_time', amount_cents: 0 });
     renderPricingItems();
     schedulePreviewUpdate();
   };
@@ -526,38 +606,39 @@
     schedulePreviewUpdate();
   };
 
-  window.updatePricingSetup = function (idx, value) {
-    pricingLineItems[idx].setup_cents = Math.round(parseFloat(value || 0) * 100);
-    updatePricingTotals();
-    schedulePreviewUpdate();
-  };
-
-  window.updatePricingMonthly = function (idx, value) {
-    pricingLineItems[idx].monthly_cents = Math.round(parseFloat(value || 0) * 100);
+  window.updatePricingAmount = function (idx, value) {
+    pricingLineItems[idx].amount_cents = Math.round(parseFloat(value || 0) * 100);
     updatePricingTotals();
     schedulePreviewUpdate();
   };
 
   function updatePricingTotals() {
+    var totalOneTime = 0;
     var totalSetup = 0;
     var totalMonthly = 0;
+
     pricingLineItems.forEach(function (item) {
-      totalSetup += (item.setup_cents || 0);
-      if (item.pricing_type === 'setup_monthly') {
-        totalMonthly += (item.monthly_cents || 0);
+      var cents = item.amount_cents || 0;
+      if (item.pricing_type === 'one_time') {
+        totalOneTime += cents;
+      } else if (item.pricing_type === 'setup_fee') {
+        totalSetup += cents;
+      } else if (item.pricing_type === 'monthly') {
+        totalMonthly += cents;
       }
     });
+
     var currency = document.getElementById('pricingCurrency').value;
     var symbols = { usd: '$', eur: '€', gbp: '£', cad: 'CA$', aud: 'A$', brl: 'R$' };
     var sym = symbols[currency] || '$';
-    document.getElementById('totalSetup').textContent = sym + (totalSetup / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    document.getElementById('totalMonthly').textContent = sym + (totalMonthly / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-    // Show/hide monthly total
-    var monthlyRow = document.getElementById('pricingTotalMonthly');
-    if (monthlyRow) {
-      monthlyRow.style.display = totalMonthly > 0 ? 'flex' : 'none';
+    function fmt(cents) {
+      return sym + (cents / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
+
+    document.getElementById('totalOneTime').textContent = fmt(totalOneTime);
+    document.getElementById('totalSetup').textContent = fmt(totalSetup);
+    document.getElementById('totalMonthly').textContent = fmt(totalMonthly);
   }
 
   // ============================================
@@ -594,23 +675,28 @@
       };
     });
 
+    var totalOneTime = 0;
     var totalSetup = 0;
     var totalMonthly = 0;
+
     var items = pricingLineItems.map(function (i) {
-      totalSetup += (i.setup_cents || 0);
-      if (i.pricing_type === 'setup_monthly') {
-        totalMonthly += (i.monthly_cents || 0);
-      }
+      var cents = i.amount_cents || 0;
+      if (i.pricing_type === 'one_time') totalOneTime += cents;
+      else if (i.pricing_type === 'setup_fee') totalSetup += cents;
+      else if (i.pricing_type === 'monthly') totalMonthly += cents;
+
       return {
         name: i.name,
         pricing_type: i.pricing_type || 'one_time',
-        setup_cents: i.setup_cents || 0,
-        monthly_cents: i.monthly_cents || 0
+        amount_cents: cents
       };
     });
 
     var dueNowVal = parseFloat(document.getElementById('dueNowAmount').value || 0);
     var dueNowCents = Math.round(dueNowVal * 100);
+
+    // Get terms template
+    var termsTemplate = document.getElementById('termsTemplate').value || '';
 
     return {
       proposal_id: document.getElementById('proposalId').value,
@@ -644,11 +730,13 @@
       pricing: {
         currency: document.getElementById('pricingCurrency').value,
         items: items,
+        total_onetime_cents: totalOneTime,
         total_setup_cents: totalSetup,
         total_monthly_cents: totalMonthly,
         due_now_cents: dueNowCents,
         notes: document.getElementById('pricingNotes').value
       },
+      terms_template: termsTemplate,
       settings: {
         tone: document.getElementById('settingsTone').value,
         industry: document.getElementById('settingsIndustry').value,
@@ -734,6 +822,35 @@
     event.target.value = '';
   };
 
+  // ============================================
+  // JSON IMPORT (paste field)
+  // ============================================
+  window.importFromJSON = function () {
+    var field = document.getElementById('jsonImportField');
+    var statusEl = document.getElementById('jsonImportStatus');
+    var raw = field.value.trim();
+
+    if (!raw) {
+      statusEl.innerHTML = '<span style="color:var(--color-danger);">Please paste JSON first.</span>';
+      setTimeout(function () { statusEl.innerHTML = ''; }, 3000);
+      return;
+    }
+
+    try {
+      var data = JSON.parse(raw);
+      populateFromJSON(data);
+      statusEl.innerHTML = '<span style="color:var(--color-success);">JSON imported successfully!</span>';
+      field.value = '';
+      showToast('Proposal imported from JSON');
+    } catch (err) {
+      statusEl.innerHTML = '<span style="color:var(--color-danger);">Invalid JSON: ' + err.message + '</span>';
+    }
+    setTimeout(function () { statusEl.innerHTML = ''; }, 4000);
+  };
+
+  // ============================================
+  // POPULATE FORM FROM JSON
+  // ============================================
   function populateFromJSON(data) {
     if (!data) return;
 
@@ -764,7 +881,7 @@
           name: sys.name || (lib ? lib.name : 'Unknown System'),
           description: lib ? lib.description : '',
           image: sys.image || (lib ? lib.image : ''),
-          draft_notes: sys.draft_notes || '',
+          draft_notes: sys.draft_notes || sys.final_copy || '',
           deliverables: sys.deliverables || (lib ? lib.deliverables.slice() : []),
           requirements: sys.requirements || (lib ? lib.requirements.slice() : [])
         });
@@ -781,21 +898,34 @@
     milestones = (data.timeline && data.timeline.milestones) || [];
     renderMilestones();
 
-    // Pricing
+    // Pricing — handle both old and new format
     var pricing = data.pricing || {};
     document.getElementById('pricingCurrency').value = pricing.currency || 'usd';
     document.getElementById('pricingNotes').value = pricing.notes || '';
     document.getElementById('dueNowAmount').value = pricing.due_now_cents ? (pricing.due_now_cents / 100).toFixed(2) : '';
 
     pricingLineItems = (pricing.items || []).map(function (i) {
+      // Support old format (setup_cents/monthly_cents) and new format (amount_cents)
+      var ptype = i.pricing_type || 'one_time';
+      var amountCents = i.amount_cents || 0;
+
+      // Migrate from old format
+      if (!i.amount_cents && i.setup_cents) {
+        amountCents = i.setup_cents;
+      }
+
       return {
         name: i.name || '',
-        pricing_type: i.pricing_type || 'one_time',
-        setup_cents: i.setup_cents || i.amount_cents || 0,
-        monthly_cents: i.monthly_cents || 0
+        pricing_type: ptype,
+        amount_cents: amountCents
       };
     });
     renderPricingItems();
+
+    // Terms
+    if (data.terms_template) {
+      document.getElementById('termsTemplate').value = data.terms_template;
+    }
 
     // Settings
     var settings = data.settings || {};
@@ -847,7 +977,7 @@
   // ============================================
   // CREATE PROPOSAL — Save + Send URL to webhook
   // ============================================
-  window.createProposal = async function () {
+  window.createProposal = function () {
     var data = buildJSON();
 
     if (!data.slug) {
@@ -867,30 +997,33 @@
     statusText.innerHTML = '<span class="badge badge-warning">Creating proposal...</span>';
     responseEl.textContent = '';
 
-    try {
-      var response = await fetch('/api/proposals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Source': 'flowtier-proposal-builder'
-        },
-        body: JSON.stringify(data)
+    fetch('/api/proposals', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Source': 'flowtier-proposal-builder'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(function (response) {
+      return response.json().then(function (result) {
+        return { ok: response.ok, status: response.status, result: result };
       });
-
-      var result = await response.json();
+    })
+    .then(function (res) {
       var now = new Date().toLocaleString();
-
-      if (response.ok && result.success) {
+      if (res.ok && res.result.success) {
         statusText.innerHTML = '<span class="badge badge-success">Proposal Created!</span> <span style="color:var(--color-text-muted);font-size:0.75rem;">' + now + '</span>';
-        responseEl.textContent = 'URL: ' + result.url + '\n\nThe proposal URL and client details have been sent to your Make.com webhook.';
+        responseEl.textContent = 'URL: ' + res.result.url + '\n\nThe proposal URL and client details have been sent to your Make.com webhook.';
       } else {
-        statusText.innerHTML = '<span class="badge badge-danger">Error (' + response.status + ')</span>';
-        responseEl.textContent = result.error || 'Unknown error';
+        statusText.innerHTML = '<span class="badge badge-danger">Error (' + res.status + ')</span>';
+        responseEl.textContent = res.result.error || 'Unknown error';
       }
-    } catch (err) {
+    })
+    .catch(function (err) {
       statusText.innerHTML = '<span class="badge badge-danger">Failed</span>';
       responseEl.textContent = err.message;
-    }
+    });
   };
 
   // ============================================
