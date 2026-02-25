@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proposal Builder — FlowTier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/index.css">
+</head>
+<body>
+
+  <div class="builder-layout">
+
+    <!-- LEFT: Form Panel -->
+    <div class="builder-form-panel" id="formPanel">
+
+      <div class="builder-header">
+        <div>
+          <div class="logo-text">FlowTier</div>
+          <h1>Proposal Builder</h1>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-secondary btn-sm" onclick="copyJSON()">Copy JSON</button>
+          <button class="btn btn-secondary btn-sm" onclick="downloadJSON()">Download JSON</button>
+          <button class="btn btn-secondary btn-sm" onclick="loadJSON()">Load JSON</button>
+          <a href="/logout" class="btn btn-secondary btn-sm" style="text-decoration:none;">Logout</a>
+        </div>
+      </div>
+
+      <!-- A) Client Information -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">A</span> Client Information
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="clientName">Client Name</label>
+            <input type="text" id="clientName" placeholder="John Smith">
+          </div>
+          <div class="form-group">
+            <label for="clientCompany">Company</label>
+            <input type="text" id="clientCompany" placeholder="Acme Corp">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="clientEmail">Email</label>
+            <input type="email" id="clientEmail" placeholder="john@acme.com">
+          </div>
+          <div class="form-group">
+            <label for="clientPhone">Phone</label>
+            <input type="tel" id="clientPhone" placeholder="+1 (555) 123-4567">
+          </div>
+        </div>
+      </div>
+
+      <!-- B) Project Details -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">B</span> Project Details
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="projectName">Project Name</label>
+            <input type="text" id="projectName" placeholder="Operations Automation">
+          </div>
+          <div class="form-group">
+            <label for="proposalId">Proposal ID</label>
+            <input type="text" id="proposalId" placeholder="PROP-001">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="proposalSlug">Slug (URL path)</label>
+            <input type="text" id="proposalSlug" placeholder="acme-operations">
+          </div>
+          <div class="form-group">
+            <label for="proposalDate">Date</label>
+            <input type="date" id="proposalDate">
+          </div>
+        </div>
+      </div>
+
+      <!-- C) Problem -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">C</span> Problem
+        </div>
+        <div class="form-group">
+          <label for="problemDraft">Problem Statement (Draft)</label>
+          <textarea id="problemDraft" rows="4" placeholder="Describe the client's current challenges..."></textarea>
+        </div>
+      </div>
+
+      <!-- D) Solution -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">D</span> Solution
+        </div>
+        <div class="form-group">
+          <label for="solutionDraft">Solution Overview (Draft)</label>
+          <textarea id="solutionDraft" rows="4" placeholder="Describe the proposed solution..."></textarea>
+        </div>
+      </div>
+
+      <!-- E) Systems Selection -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">E</span> Systems
+        </div>
+        <div class="form-group">
+          <label for="systemDropdown">Add a System</label>
+          <div class="dropdown-add-row">
+            <select id="systemDropdown">
+              <option value="">— Select a system to add —</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="addSystemBtn" type="button">Add</button>
+          </div>
+        </div>
+        <div id="addedSystemsList"></div>
+      </div>
+
+      <!-- F) Scope of Work -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">F</span> Scope of Work
+        </div>
+        <div id="scopeList"></div>
+        <button class="add-item-btn" onclick="addScopeItem()">+ Add Item</button>
+      </div>
+
+      <!-- G) Timeline -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">G</span> Timeline
+        </div>
+        <div id="milestoneList"></div>
+        <button class="add-item-btn" onclick="addMilestone()">+ Add Milestone</button>
+      </div>
+
+      <!-- H) Pricing -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">H</span> Pricing
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pricingMode">Pricing Mode</label>
+            <select id="pricingMode">
+              <option value="one_time">One-Time</option>
+              <option value="setup_plus_monthly">Setup + Monthly</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="pricingCurrency">Currency</label>
+            <select id="pricingCurrency">
+              <option value="usd">USD ($)</option>
+              <option value="eur">EUR (€)</option>
+              <option value="gbp">GBP (£)</option>
+              <option value="cad">CAD (CA$)</option>
+              <option value="aud">AUD (A$)</option>
+              <option value="brl">BRL (R$)</option>
+            </select>
+          </div>
+        </div>
+        <div id="pricingItems"></div>
+        <button class="add-item-btn" onclick="addPricingItem()">+ Add Line Item</button>
+        <div class="pricing-total" id="pricingTotal">
+          <span class="total-label">Total:</span>
+          <span class="total-amount" id="totalAmount">$0.00</span>
+        </div>
+        <div class="form-group" style="margin-top:16px;">
+          <label for="pricingNotes">Pricing Notes</label>
+          <textarea id="pricingNotes" rows="2" placeholder="Optional notes..."></textarea>
+        </div>
+      </div>
+
+      <!-- I) Settings -->
+      <div class="builder-section">
+        <div class="builder-section-title">
+          <span class="section-num">I</span> Settings
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="settingsTone">Tone</label>
+            <select id="settingsTone">
+              <option value="Professional">Professional</option>
+              <option value="Friendly">Friendly</option>
+              <option value="Formal">Formal</option>
+              <option value="Casual">Casual</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="settingsIndustry">Industry</label>
+            <select id="settingsIndustry">
+              <option value="Service Business">Service Business</option>
+              <option value="Healthcare">Healthcare</option>
+              <option value="Real Estate">Real Estate</option>
+              <option value="Construction">Construction</option>
+              <option value="Cleaning">Cleaning</option>
+              <option value="Legal">Legal</option>
+              <option value="Finance">Finance</option>
+              <option value="E-commerce">E-commerce</option>
+              <option value="Education">Education</option>
+              <option value="SaaS">SaaS</option>
+              <option value="Agency">Agency</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="toggle-wrap">
+            <input type="checkbox" id="settingsShowImages" checked>
+            <span class="toggle-label">Show system images in proposal</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="toggle-wrap">
+            <input type="checkbox" id="settingsDeposit">
+            <span class="toggle-label">Deposit required</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label for="settingsPayText">Pay Button Text</label>
+          <input type="text" id="settingsPayText" value="Pay Now" placeholder="Pay Now">
+        </div>
+      </div>
+
+      <!-- Webhook -->
+      <div class="webhook-section">
+        <h3>Make.com Webhook</h3>
+        <div class="form-group">
+          <label for="webhookUrl">Webhook URL</label>
+          <input type="url" id="webhookUrl" placeholder="https://hook.us1.make.com/...">
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-primary btn-sm" onclick="sendWebhook()">Send JSON to Make.com</button>
+        </div>
+        <div class="status-panel" id="webhookStatus" style="margin-top:16px;display:none;">
+          <div id="webhookStatusText"></div>
+          <pre id="webhookResponse"></pre>
+        </div>
+      </div>
+
+      <div style="height:40px;"></div>
+    </div>
+
+    <!-- RIGHT: Preview Panel -->
+    <div class="builder-preview-panel">
+      <div class="preview-header">
+        <h4>Live Preview</h4>
+        <button class="btn btn-secondary btn-sm" onclick="refreshPreview()">Refresh</button>
+      </div>
+      <iframe id="previewFrame" src="/static/proposal.html"></iframe>
+    </div>
+
+  </div>
+
+  <!-- Hidden file input for JSON loading -->
+  <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleFileLoad(event)">
+
+  <script src="/static/builder.js"></script>
+</body>
+</html>
