@@ -2056,8 +2056,8 @@ textarea {
 }
 
 .signature-type-preview {
-  font-family: 'Dancing Script', 'Brush Script MT', cursive;
-  font-size: 2rem;
+  font-family: 'Caveat', 'Dancing Script', 'Brush Script MT', cursive;
+  font-size: 2.5rem;
   color: var(--color-text);
   text-align: center;
   padding: 24px;
@@ -2286,5 +2286,129 @@ textarea {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+}
+
+/* ============================================
+   PRICING CARD V2 (builder — with description + due date)
+   ============================================ */
+.pricing-card-v2 {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: border-color var(--transition);
+}
+
+.pricing-card-v2:hover {
+  border-color: rgba(0, 230, 118, 0.15);
+}
+
+.pricing-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pricing-card-header .pr-name {
+  flex: 1;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.pricing-card-header .btn-icon {
+  flex-shrink: 0;
+}
+
+.pricing-card-v2 .pr-description {
+  width: 100%;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  margin-bottom: 14px;
+  resize: vertical;
+  min-height: 48px;
+}
+
+.pricing-card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.pr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pr-field label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.pr-field select,
+.pr-field input {
+  font-size: 0.8125rem;
+  padding: 8px 10px;
+}
+
+/* ============================================
+   HANDWRITTEN FONT — Signature typed preview
+   ============================================ */
+.sig-typed-preview {
+  font-family: 'Caveat', 'Dancing Script', 'Brush Script MT', cursive;
+  font-size: 2.5rem;
+  color: var(--color-text);
+  text-align: center;
+  padding: 20px;
+  min-height: 70px;
+  margin-top: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.sig-typed-display {
+  font-family: 'Caveat', 'Dancing Script', 'Brush Script MT', cursive;
+  font-size: 2.5rem;
+  color: var(--color-text);
+  text-align: center;
+  padding: 16px;
+}
+
+.sig-typed-input {
+  font-size: 0.9375rem;
+  padding: 10px 14px;
+}
+
+.sig-image {
+  max-width: 320px;
+  max-height: 120px;
+  margin: 12px auto;
+  display: block;
+}
+
+/* Pricing description in proposal */
+.pricing-item-description {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+.pricing-item-due-date {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .pricing-card-row {
+    grid-template-columns: 1fr;
   }
 }

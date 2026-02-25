@@ -568,15 +568,21 @@
     var html = '';
     pricingLineItems.forEach(function (item, i) {
       var ptype = item.pricing_type || 'one_time';
-      html += '<div class="pricing-row-v2">';
-      html += '<input type="text" class="pr-name" value="' + escapeAttr(item.name) + '" placeholder="Item name" oninput="updatePricingItem(' + i + ', \'name\', this.value)">';
-      html += '<select class="pr-type" onchange="updatePricingItem(' + i + ', \'pricing_type\', this.value); renderPricingItemsGlobal();">';
+      html += '<div class="pricing-card-v2">';
+      html += '<div class="pricing-card-header">';
+      html += '<input type="text" class="pr-name" value="' + escapeAttr(item.name) + '" placeholder="Item title" oninput="updatePricingItem(' + i + ', \'name\', this.value)">';
+      html += '<button class="btn-icon" onclick="removePricingItem(' + i + ')" title="Remove">&times;</button>';
+      html += '</div>';
+      html += '<textarea class="pr-description" rows="2" placeholder="Description of this service..." oninput="updatePricingItem(' + i + ', \'description\', this.value)">' + escapeAttr(item.description || '') + '</textarea>';
+      html += '<div class="pricing-card-row">';
+      html += '<div class="pr-field"><label>Type</label><select class="pr-type" onchange="updatePricingItem(' + i + ', \'pricing_type\', this.value); renderPricingItemsGlobal();">';
       html += '<option value="one_time"' + (ptype === 'one_time' ? ' selected' : '') + '>One-Time</option>';
       html += '<option value="setup_fee"' + (ptype === 'setup_fee' ? ' selected' : '') + '>Setup Fee</option>';
       html += '<option value="monthly"' + (ptype === 'monthly' ? ' selected' : '') + '>Monthly</option>';
-      html += '</select>';
-      html += '<input type="number" class="pr-amount" value="' + ((item.amount_cents || 0) / 100).toFixed(2) + '" placeholder="0.00" step="0.01" min="0" oninput="updatePricingAmount(' + i + ', this.value)">';
-      html += '<button class="btn-icon" onclick="removePricingItem(' + i + ')" title="Remove">&times;</button>';
+      html += '</select></div>';
+      html += '<div class="pr-field"><label>Amount</label><input type="number" class="pr-amount" value="' + ((item.amount_cents || 0) / 100).toFixed(2) + '" placeholder="0.00" step="0.01" min="0" oninput="updatePricingAmount(' + i + ', this.value)"></div>';
+      html += '<div class="pr-field"><label>Due Date</label><input type="date" class="pr-due-date" value="' + escapeAttr(item.due_date || '') + '" oninput="updatePricingItem(' + i + ', \'due_date\', this.value)"></div>';
+      html += '</div>';
       html += '</div>';
     });
     container.innerHTML = html;
@@ -590,7 +596,7 @@
   };
 
   window.addPricingItem = function () {
-    pricingLineItems.push({ name: '', pricing_type: 'one_time', amount_cents: 0 });
+    pricingLineItems.push({ name: '', description: '', pricing_type: 'one_time', amount_cents: 0, due_date: '' });
     renderPricingItems();
     schedulePreviewUpdate();
   };
@@ -687,8 +693,10 @@
 
       return {
         name: i.name,
+        description: i.description || '',
         pricing_type: i.pricing_type || 'one_time',
-        amount_cents: cents
+        amount_cents: cents,
+        due_date: i.due_date || ''
       };
     });
 

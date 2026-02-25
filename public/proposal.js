@@ -440,7 +440,15 @@
         }
 
         html += '<tr>';
-        html += '<td><strong>' + escapeHtml(item.name || '') + '</strong></td>';
+        html += '<td>';
+        html += '<strong>' + escapeHtml(item.name || '') + '</strong>';
+        if (item.description) {
+          html += '<div class="pricing-item-description">' + escapeHtml(item.description) + '</div>';
+        }
+        if (item.due_date) {
+          html += '<div class="pricing-item-due-date">Due: ' + escapeHtml(item.due_date) + '</div>';
+        }
+        html += '</td>';
         html += '<td><span class="pricing-type-badge pricing-type-' + (item.pricing_type || 'one_time') + '">' + typeLabel + '</span></td>';
         html += '<td>' + amountStr + '</td>';
         html += '</tr>';
@@ -577,11 +585,13 @@
     } else if (signedInfo) {
       html += renderSignedConfirmation(signedInfo, settings, slug, pricing);
     } else {
+      // Store client info for signature submission
+      var clientName = (data.client && data.client.name) || '';
+      var clientEmail = (data.client && data.client.email) || '';
+
       html += '<form id="signForm" onsubmit="return false;">';
-      html += '<div class="signature-fields">';
-      html += '<div class="form-group"><label for="sigName">Full Name *</label><input type="text" id="sigName" required placeholder="Your full name"></div>';
-      html += '<div class="form-group"><label for="sigEmail">Email Address *</label><input type="email" id="sigEmail" required placeholder="your@email.com"></div>';
-      html += '</div>';
+      html += '<input type="hidden" id="sigName" value="' + escapeHtml(clientName) + '">';
+      html += '<input type="hidden" id="sigEmail" value="' + escapeHtml(clientEmail) + '">';
 
       // Signature mode tabs
       html += '<div class="signature-mode">';
@@ -678,10 +688,21 @@
     var email = document.getElementById('sigEmail');
     var agree = document.getElementById('sigAgree');
 
-    if (!name || !email || !agree) return;
-    if (!name.value.trim()) { name.focus(); return alert('Please enter your full name.'); }
-    if (!email.value.trim()) { email.focus(); return alert('Please enter your email address.'); }
+    if (!agree) return;
     if (!agree.checked) { return alert('You must agree to the terms and conditions.'); }
+
+    // Get name from typed signature or hidden field
+    var sigTypedInput = document.getElementById('sigTypedName');
+    var sigNameVal = '';
+    if (signatureMode === 'type' && sigTypedInput && sigTypedInput.value.trim()) {
+      sigNameVal = sigTypedInput.value.trim();
+    } else if (signatureMode === 'draw') {
+      sigNameVal = (name && name.value) ? name.value.trim() : 'Client';
+    } else {
+      if (!sigTypedInput || !sigTypedInput.value.trim()) { sigTypedInput.focus(); return alert('Please type your name to sign.'); }
+      sigNameVal = sigTypedInput.value.trim();
+    }
+    var sigEmailVal = (email && email.value) ? email.value.trim() : '';
 
     var slug = getSlugFromPath() || (window.PROPOSAL_DATA ? window.PROPOSAL_DATA.slug : null) || 'proposal';
     var settings = window.PROPOSAL_DATA ? (window.PROPOSAL_DATA.settings || {}) : {};
@@ -701,8 +722,8 @@
     }
 
     var signPayload = {
-      name: name.value.trim(),
-      email: email.value.trim(),
+      name: sigNameVal,
+      email: sigEmailVal,
       signature_data: signatureData,
       signature_type: signatureType
     };
