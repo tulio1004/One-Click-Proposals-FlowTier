@@ -182,7 +182,7 @@
   // ============================================
   // STATE
   // ============================================
-  let addedSystems = []; // Array of { id, name, description, image, draft_notes, deliverables, requirements }
+  let addedSystems = [];
   let scopeItems = [];
   let milestones = [];
   let pricingLineItems = [];
@@ -196,19 +196,29 @@
     loadWebhookUrl();
     setDefaultDate();
     attachChangeListeners();
+    setupAutoSlug();
     schedulePreviewUpdate();
 
-    // Fix: capture dropdown value on change, use mousedown on button
+    // Fix: capture dropdown value on change and on any interaction
     const dropdown = document.getElementById('systemDropdown');
     if (dropdown) {
       dropdown.addEventListener('change', function () {
         dropdown._lastValue = dropdown.value;
       });
+      // Also capture on mousedown/focus to handle edge cases
+      dropdown.addEventListener('mousedown', function () {
+        if (dropdown.value) dropdown._lastValue = dropdown.value;
+      });
     }
     const addBtn = document.getElementById('addSystemBtn');
     if (addBtn) {
-      addBtn.addEventListener('mousedown', function (e) {
+      addBtn.addEventListener('click', function (e) {
         e.preventDefault();
+        // Read value directly at click time
+        const select = document.getElementById('systemDropdown');
+        if (!select.value && select._lastValue) {
+          select.value = select._lastValue;
+        }
         addSelectedSystem();
       });
     }
@@ -230,6 +240,41 @@
   }
 
   // ============================================
+  // AUTO-SLUG GENERATION
+  // ============================================
+  function setupAutoSlug() {
+    const companyInput = document.getElementById('clientCompany');
+    const nameInput = document.getElementById('clientName');
+    const slugInput = document.getElementById('proposalSlug');
+
+    function generateSlug() {
+      const company = companyInput.value.trim();
+      const name = nameInput.value.trim();
+      const base = company || name || '';
+      if (!base) {
+        slugInput.value = '';
+        return;
+      }
+      // Create slug: lowercase, replace spaces/special chars with hyphens
+      let slug = base.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      // Add a short unique suffix to avoid collisions
+      const date = new Date();
+      const suffix = date.getFullYear().toString().slice(-2) + (date.getMonth() + 1).toString().padStart(2, '0');
+      slug = slug + '-' + suffix;
+
+      slugInput.value = slug;
+    }
+
+    companyInput.addEventListener('input', generateSlug);
+    nameInput.addEventListener('input', generateSlug);
+  }
+
+  // ============================================
   // SYSTEM DROPDOWN + ADD
   // ============================================
   window.addSelectedSystem = function () {
@@ -237,7 +282,6 @@
     const id = select.value || select._lastValue;
     if (!id) return alert('Please select a system from the dropdown.');
 
-    // Allow custom_automation to be added multiple times, but others only once
     if (id !== 'custom_automation' && addedSystems.find(s => s.id === id)) {
       return alert('This system has already been added.');
     }
@@ -247,7 +291,7 @@
 
     const system = {
       id: id,
-      uid: id + '_' + Date.now(), // unique key for rendering
+      uid: id + '_' + Date.now(),
       name: lib.name,
       description: lib.description,
       image: lib.image,
@@ -299,54 +343,54 @@
       const isFirst = idx === 0;
       const isLast = idx === addedSystems.length - 1;
 
-      html += `<div class="system-card-builder" data-uid="${sys.uid}">`;
-      html += `<div class="system-card-header">`;
-      html += `<div class="system-card-title">`;
+      html += '<div class="system-card-builder" data-uid="' + sys.uid + '">';
+      html += '<div class="system-card-header">';
+      html += '<div class="system-card-title">';
       if (sys.image) {
-        html += `<img src="${escapeAttr(sys.image)}" alt="" class="system-thumb">`;
+        html += '<img src="' + escapeAttr(sys.image) + '" alt="" class="system-thumb">';
       }
-      html += `<div>`;
+      html += '<div>';
       if (isCustom) {
-        html += `<input type="text" class="system-name-input" value="${escapeAttr(sys.name)}" placeholder="Custom System Name" onchange="updateSystemField('${sys.uid}', 'name', this.value)">`;
+        html += '<input type="text" class="system-name-input" value="' + escapeAttr(sys.name) + '" placeholder="Custom System Name" onchange="updateSystemField(\'' + sys.uid + '\', \'name\', this.value)">';
       } else {
-        html += `<strong>${escapeHtml(sys.name)}</strong>`;
+        html += '<strong>' + escapeHtml(sys.name) + '</strong>';
       }
-      html += `</div></div>`;
-      html += `<div class="system-card-actions">`;
-      if (!isFirst) html += `<button class="btn-icon" onclick="moveSystemUp('${sys.uid}')" title="Move up">&#9650;</button>`;
-      if (!isLast) html += `<button class="btn-icon" onclick="moveSystemDown('${sys.uid}')" title="Move down">&#9660;</button>`;
-      html += `<button class="btn-icon btn-danger" onclick="removeSystem('${sys.uid}')" title="Remove system">&times;</button>`;
-      html += `</div></div>`;
+      html += '</div></div>';
+      html += '<div class="system-card-actions">';
+      if (!isFirst) html += '<button class="btn-icon" onclick="moveSystemUp(\'' + sys.uid + '\')" title="Move up">&#9650;</button>';
+      if (!isLast) html += '<button class="btn-icon" onclick="moveSystemDown(\'' + sys.uid + '\')" title="Move down">&#9660;</button>';
+      html += '<button class="btn-icon btn-danger" onclick="removeSystem(\'' + sys.uid + '\')" title="Remove system">&times;</button>';
+      html += '</div></div>';
 
-      // Draft notes / description
-      html += `<div class="form-group">`;
-      html += `<label>${isCustom ? 'System Description' : 'Draft Notes (editable)'}</label>`;
-      html += `<textarea id="sys_notes_${sys.uid}" rows="3" placeholder="${isCustom ? 'Describe this custom automation...' : 'Notes about this system for this client...'}" oninput="updateSystemField('${sys.uid}', 'draft_notes', this.value)">${escapeHtml(sys.draft_notes || '')}</textarea>`;
-      html += `</div>`;
+      // Draft notes
+      html += '<div class="form-group">';
+      html += '<label>' + (isCustom ? 'System Description' : 'Draft Notes (editable)') + '</label>';
+      html += '<textarea id="sys_notes_' + sys.uid + '" rows="3" placeholder="' + (isCustom ? 'Describe this custom automation...' : 'Notes about this system for this client...') + '" oninput="updateSystemField(\'' + sys.uid + '\', \'draft_notes\', this.value)">' + escapeHtml(sys.draft_notes || '') + '</textarea>';
+      html += '</div>';
 
       // Deliverables
-      html += `<div class="form-group">`;
-      html += `<label>Deliverables</label>`;
-      html += `<ul class="editable-list" id="sys_del_${sys.uid}">`;
-      sys.deliverables.forEach(d => {
+      html += '<div class="form-group">';
+      html += '<label>Deliverables</label>';
+      html += '<ul class="editable-list" id="sys_del_' + sys.uid + '">';
+      sys.deliverables.forEach(function (d) {
         html += editableListItemHTML(d);
       });
-      html += `</ul>`;
-      html += `<button class="add-item-btn" onclick="addEditableListItem(document.getElementById('sys_del_${sys.uid}')); schedulePreviewUpdate()">+ Add Deliverable</button>`;
-      html += `</div>`;
+      html += '</ul>';
+      html += '<button class="add-item-btn" onclick="addEditableListItem(document.getElementById(\'sys_del_' + sys.uid + '\')); schedulePreviewUpdate()">+ Add Deliverable</button>';
+      html += '</div>';
 
       // Requirements
-      html += `<div class="form-group">`;
-      html += `<label>Requirements</label>`;
-      html += `<ul class="editable-list" id="sys_req_${sys.uid}">`;
-      sys.requirements.forEach(r => {
+      html += '<div class="form-group">';
+      html += '<label>Requirements</label>';
+      html += '<ul class="editable-list" id="sys_req_' + sys.uid + '">';
+      sys.requirements.forEach(function (r) {
         html += editableListItemHTML(r);
       });
-      html += `</ul>`;
-      html += `<button class="add-item-btn" onclick="addEditableListItem(document.getElementById('sys_req_${sys.uid}')); schedulePreviewUpdate()">+ Add Requirement</button>`;
-      html += `</div>`;
+      html += '</ul>';
+      html += '<button class="add-item-btn" onclick="addEditableListItem(document.getElementById(\'sys_req_' + sys.uid + '\')); schedulePreviewUpdate()">+ Add Requirement</button>';
+      html += '</div>';
 
-      html += `</div>`;
+      html += '</div>';
     });
 
     container.innerHTML = html;
@@ -361,13 +405,13 @@
   };
 
   function editableListItemHTML(value) {
-    return `<li><input type="text" value="${escapeAttr(value)}" oninput="schedulePreviewUpdate()"><button class="btn-icon" onclick="this.parentElement.remove(); schedulePreviewUpdate()" title="Remove">&times;</button></li>`;
+    return '<li><input type="text" value="' + escapeAttr(value) + '" oninput="schedulePreviewUpdate()"><button class="btn-icon" onclick="this.parentElement.remove(); schedulePreviewUpdate()" title="Remove">&times;</button></li>';
   }
 
   window.addEditableListItem = function (container, value) {
     if (!container) return;
-    const li = document.createElement('li');
-    li.innerHTML = `<input type="text" value="${escapeAttr(value || '')}" oninput="schedulePreviewUpdate()"><button class="btn-icon" onclick="this.parentElement.remove(); schedulePreviewUpdate()" title="Remove">&times;</button>`;
+    var li = document.createElement('li');
+    li.innerHTML = '<input type="text" value="' + escapeAttr(value || '') + '" oninput="schedulePreviewUpdate()"><button class="btn-icon" onclick="this.parentElement.remove(); schedulePreviewUpdate()" title="Remove">&times;</button>';
     container.appendChild(li);
   };
 
@@ -377,8 +421,8 @@
   function renderScopeItems() {
     const container = document.getElementById('scopeList');
     let html = '<ul class="editable-list">';
-    scopeItems.forEach((item, i) => {
-      html += `<li><input type="text" value="${escapeAttr(item)}" data-scope-idx="${i}" oninput="updateScopeItem(this)"><button class="btn-icon" onclick="removeScopeItem(${i})" title="Remove">&times;</button></li>`;
+    scopeItems.forEach(function (item, i) {
+      html += '<li><input type="text" value="' + escapeAttr(item) + '" data-scope-idx="' + i + '" oninput="updateScopeItem(this)"><button class="btn-icon" onclick="removeScopeItem(' + i + ')" title="Remove">&times;</button></li>';
     });
     html += '</ul>';
     container.innerHTML = html;
@@ -387,7 +431,7 @@
   window.addScopeItem = function () {
     scopeItems.push('');
     renderScopeItems();
-    const inputs = document.querySelectorAll('#scopeList input');
+    var inputs = document.querySelectorAll('#scopeList input');
     if (inputs.length) inputs[inputs.length - 1].focus();
     schedulePreviewUpdate();
   };
@@ -399,7 +443,7 @@
   };
 
   window.updateScopeItem = function (el) {
-    const idx = parseInt(el.dataset.scopeIdx);
+    var idx = parseInt(el.dataset.scopeIdx);
     scopeItems[idx] = el.value;
     schedulePreviewUpdate();
   };
@@ -410,15 +454,13 @@
   function renderMilestones() {
     const container = document.getElementById('milestoneList');
     let html = '';
-    milestones.forEach((m, i) => {
-      html += `
-        <div class="milestone-row">
-          <input type="text" value="${escapeAttr(m.title)}" placeholder="Title" oninput="updateMilestone(${i}, 'title', this.value)">
-          <input type="text" value="${escapeAttr(m.when)}" placeholder="When" oninput="updateMilestone(${i}, 'when', this.value)">
-          <input type="text" value="${escapeAttr(m.details)}" placeholder="Details" oninput="updateMilestone(${i}, 'details', this.value)">
-          <button class="btn-icon" onclick="removeMilestone(${i})" title="Remove">&times;</button>
-        </div>
-      `;
+    milestones.forEach(function (m, i) {
+      html += '<div class="milestone-row">';
+      html += '<input type="text" value="' + escapeAttr(m.title) + '" placeholder="Title" oninput="updateMilestone(' + i + ', \'title\', this.value)">';
+      html += '<input type="text" value="' + escapeAttr(m.when) + '" placeholder="When" oninput="updateMilestone(' + i + ', \'when\', this.value)">';
+      html += '<input type="text" value="' + escapeAttr(m.details) + '" placeholder="Details" oninput="updateMilestone(' + i + ', \'details\', this.value)">';
+      html += '<button class="btn-icon" onclick="removeMilestone(' + i + ')" title="Remove">&times;</button>';
+      html += '</div>';
     });
     container.innerHTML = html;
   }
@@ -441,27 +483,34 @@
   };
 
   // ============================================
-  // PRICING
+  // PRICING — One-Time or Setup+Monthly per item
   // ============================================
   function renderPricingItems() {
     const container = document.getElementById('pricingItems');
     let html = '';
-    pricingLineItems.forEach((item, i) => {
-      html += `
-        <div class="pricing-row">
-          <input type="text" value="${escapeAttr(item.name)}" placeholder="Item name" oninput="updatePricingItem(${i}, 'name', this.value)">
-          <input type="text" value="${escapeAttr(item.description)}" placeholder="Description" oninput="updatePricingItem(${i}, 'description', this.value)">
-          <input type="number" value="${(item.amount_cents / 100).toFixed(2)}" placeholder="0.00" step="0.01" min="0" oninput="updatePricingAmount(${i}, this.value)">
-          <button class="btn-icon" onclick="removePricingItem(${i})" title="Remove">&times;</button>
-        </div>
-      `;
+    pricingLineItems.forEach(function (item, i) {
+      var ptype = item.pricing_type || 'one_time';
+      html += '<div class="pricing-row-v2">';
+      html += '<input type="text" class="pr-name" value="' + escapeAttr(item.name) + '" placeholder="Item name" oninput="updatePricingItem(' + i + ', \'name\', this.value)">';
+      html += '<select class="pr-type" onchange="updatePricingItem(' + i + ', \'pricing_type\', this.value); renderPricingItems();">';
+      html += '<option value="one_time"' + (ptype === 'one_time' ? ' selected' : '') + '>One-Time</option>';
+      html += '<option value="setup_monthly"' + (ptype === 'setup_monthly' ? ' selected' : '') + '>Setup + Monthly</option>';
+      html += '</select>';
+      html += '<input type="number" class="pr-setup" value="' + ((item.setup_cents || 0) / 100).toFixed(2) + '" placeholder="0.00" step="0.01" min="0" oninput="updatePricingSetup(' + i + ', this.value)">';
+      if (ptype === 'setup_monthly') {
+        html += '<input type="number" class="pr-monthly" value="' + ((item.monthly_cents || 0) / 100).toFixed(2) + '" placeholder="0.00" step="0.01" min="0" oninput="updatePricingMonthly(' + i + ', this.value)">';
+      } else {
+        html += '<div class="pr-monthly-placeholder"></div>';
+      }
+      html += '<button class="btn-icon" onclick="removePricingItem(' + i + ')" title="Remove">&times;</button>';
+      html += '</div>';
     });
     container.innerHTML = html;
-    updatePricingTotal();
+    updatePricingTotals();
   }
 
   window.addPricingItem = function () {
-    pricingLineItems.push({ name: '', description: '', amount_cents: 0 });
+    pricingLineItems.push({ name: '', pricing_type: 'one_time', setup_cents: 0, monthly_cents: 0 });
     renderPricingItems();
     schedulePreviewUpdate();
   };
@@ -477,40 +526,59 @@
     schedulePreviewUpdate();
   };
 
-  window.updatePricingAmount = function (idx, value) {
-    pricingLineItems[idx].amount_cents = Math.round(parseFloat(value || 0) * 100);
-    updatePricingTotal();
+  window.updatePricingSetup = function (idx, value) {
+    pricingLineItems[idx].setup_cents = Math.round(parseFloat(value || 0) * 100);
+    updatePricingTotals();
     schedulePreviewUpdate();
   };
 
-  function updatePricingTotal() {
-    const total = pricingLineItems.reduce((sum, item) => sum + (item.amount_cents || 0), 0);
-    const currency = document.getElementById('pricingCurrency').value;
-    const symbols = { usd: '$', eur: '€', gbp: '£', cad: 'CA$', aud: 'A$', brl: 'R$' };
-    const sym = symbols[currency] || '$';
-    document.getElementById('totalAmount').textContent = sym + (total / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  window.updatePricingMonthly = function (idx, value) {
+    pricingLineItems[idx].monthly_cents = Math.round(parseFloat(value || 0) * 100);
+    updatePricingTotals();
+    schedulePreviewUpdate();
+  };
+
+  function updatePricingTotals() {
+    var totalSetup = 0;
+    var totalMonthly = 0;
+    pricingLineItems.forEach(function (item) {
+      totalSetup += (item.setup_cents || 0);
+      if (item.pricing_type === 'setup_monthly') {
+        totalMonthly += (item.monthly_cents || 0);
+      }
+    });
+    var currency = document.getElementById('pricingCurrency').value;
+    var symbols = { usd: '$', eur: '€', gbp: '£', cad: 'CA$', aud: 'A$', brl: 'R$' };
+    var sym = symbols[currency] || '$';
+    document.getElementById('totalSetup').textContent = sym + (totalSetup / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('totalMonthly').textContent = sym + (totalMonthly / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    // Show/hide monthly total
+    var monthlyRow = document.getElementById('pricingTotalMonthly');
+    if (monthlyRow) {
+      monthlyRow.style.display = totalMonthly > 0 ? 'flex' : 'none';
+    }
   }
 
   // ============================================
   // BUILD JSON
   // ============================================
   function buildJSON() {
-    // Collect current deliverables/requirements from DOM for each system
-    const systems = addedSystems.map(sys => {
-      const delContainer = document.getElementById('sys_del_' + sys.uid);
-      const reqContainer = document.getElementById('sys_req_' + sys.uid);
-      const notesEl = document.getElementById('sys_notes_' + sys.uid);
+    var systems = addedSystems.map(function (sys) {
+      var delContainer = document.getElementById('sys_del_' + sys.uid);
+      var reqContainer = document.getElementById('sys_req_' + sys.uid);
+      var notesEl = document.getElementById('sys_notes_' + sys.uid);
 
-      const deliverables = [];
+      var deliverables = [];
       if (delContainer) {
-        delContainer.querySelectorAll('input').forEach(inp => {
+        delContainer.querySelectorAll('input').forEach(function (inp) {
           if (inp.value.trim()) deliverables.push(inp.value.trim());
         });
       }
 
-      const requirements = [];
+      var requirements = [];
       if (reqContainer) {
-        reqContainer.querySelectorAll('input').forEach(inp => {
+        reqContainer.querySelectorAll('input').forEach(function (inp) {
           if (inp.value.trim()) requirements.push(inp.value.trim());
         });
       }
@@ -526,7 +594,23 @@
       };
     });
 
-    const total = pricingLineItems.reduce((sum, item) => sum + (item.amount_cents || 0), 0);
+    var totalSetup = 0;
+    var totalMonthly = 0;
+    var items = pricingLineItems.map(function (i) {
+      totalSetup += (i.setup_cents || 0);
+      if (i.pricing_type === 'setup_monthly') {
+        totalMonthly += (i.monthly_cents || 0);
+      }
+      return {
+        name: i.name,
+        pricing_type: i.pricing_type || 'one_time',
+        setup_cents: i.setup_cents || 0,
+        monthly_cents: i.monthly_cents || 0
+      };
+    });
+
+    var dueNowVal = parseFloat(document.getElementById('dueNowAmount').value || 0);
+    var dueNowCents = Math.round(dueNowVal * 100);
 
     return {
       proposal_id: document.getElementById('proposalId').value,
@@ -551,24 +635,24 @@
       },
       systems: systems,
       scope_of_work: {
-        draft_bullets: scopeItems.filter(s => s.trim()),
+        draft_bullets: scopeItems.filter(function (s) { return s.trim(); }),
         final_bullets: null
       },
       timeline: {
-        milestones: milestones.filter(m => m.title.trim() || m.when.trim())
+        milestones: milestones.filter(function (m) { return m.title.trim() || m.when.trim(); })
       },
       pricing: {
         currency: document.getElementById('pricingCurrency').value,
-        mode: document.getElementById('pricingMode').value,
-        items: pricingLineItems.map(i => ({ ...i })),
-        total_cents: total,
+        items: items,
+        total_setup_cents: totalSetup,
+        total_monthly_cents: totalMonthly,
+        due_now_cents: dueNowCents,
         notes: document.getElementById('pricingNotes').value
       },
       settings: {
         tone: document.getElementById('settingsTone').value,
         industry: document.getElementById('settingsIndustry').value,
         show_images: document.getElementById('settingsShowImages').checked,
-        deposit_required: document.getElementById('settingsDeposit').checked,
         pay_button_text: document.getElementById('settingsPayText').value || 'Pay Now'
       }
     };
@@ -583,8 +667,8 @@
   };
 
   function updatePreview() {
-    const data = buildJSON();
-    const iframe = document.getElementById('previewFrame');
+    var data = buildJSON();
+    var iframe = document.getElementById('previewFrame');
     if (iframe && iframe.contentWindow) {
       iframe.contentWindow.postMessage({ type: 'proposal_update', payload: data }, '*');
     }
@@ -592,7 +676,7 @@
 
   window.refreshPreview = function () {
     updatePreview();
-    const iframe = document.getElementById('previewFrame');
+    var iframe = document.getElementById('previewFrame');
     if (iframe) {
       iframe.src = iframe.src;
       setTimeout(updatePreview, 500);
@@ -603,11 +687,11 @@
   // JSON ACTIONS
   // ============================================
   window.copyJSON = function () {
-    const json = JSON.stringify(buildJSON(), null, 2);
-    navigator.clipboard.writeText(json).then(() => {
+    var json = JSON.stringify(buildJSON(), null, 2);
+    navigator.clipboard.writeText(json).then(function () {
       showToast('JSON copied to clipboard');
-    }).catch(() => {
-      const ta = document.createElement('textarea');
+    }).catch(function () {
+      var ta = document.createElement('textarea');
       ta.value = json;
       document.body.appendChild(ta);
       ta.select();
@@ -618,11 +702,11 @@
   };
 
   window.downloadJSON = function () {
-    const data = buildJSON();
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    var data = buildJSON();
+    var json = JSON.stringify(data, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
     a.href = url;
     a.download = (data.slug || 'proposal') + '.json';
     a.click();
@@ -634,12 +718,12 @@
   };
 
   window.handleFileLoad = function (event) {
-    const file = event.target.files[0];
+    var file = event.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
+    var reader = new FileReader();
     reader.onload = function (e) {
       try {
-        const data = JSON.parse(e.target.result);
+        var data = JSON.parse(e.target.result);
         populateFromJSON(data);
         showToast('JSON loaded successfully');
       } catch (err) {
@@ -654,26 +738,26 @@
     if (!data) return;
 
     // Client
-    document.getElementById('clientName').value = data.client?.name || '';
-    document.getElementById('clientCompany').value = data.client?.company || '';
-    document.getElementById('clientEmail').value = data.client?.email || '';
-    document.getElementById('clientPhone').value = data.client?.phone || '';
+    document.getElementById('clientName').value = (data.client && data.client.name) || '';
+    document.getElementById('clientCompany').value = (data.client && data.client.company) || '';
+    document.getElementById('clientEmail').value = (data.client && data.client.email) || '';
+    document.getElementById('clientPhone').value = (data.client && data.client.phone) || '';
 
     // Project
-    document.getElementById('projectName').value = data.project?.name || '';
+    document.getElementById('projectName').value = (data.project && data.project.name) || '';
     document.getElementById('proposalId').value = data.proposal_id || '';
     document.getElementById('proposalSlug').value = data.slug || '';
     document.getElementById('proposalDate').value = data.created_date ? data.created_date.split('T')[0] : '';
 
     // Problem & Solution
-    document.getElementById('problemDraft').value = data.problem?.draft || '';
-    document.getElementById('solutionDraft').value = data.solution?.draft || '';
+    document.getElementById('problemDraft').value = (data.problem && data.problem.draft) || '';
+    document.getElementById('solutionDraft').value = (data.solution && data.solution.draft) || '';
 
     // Systems
     addedSystems = [];
     if (data.systems && Array.isArray(data.systems)) {
-      data.systems.forEach(sys => {
-        const lib = SYSTEMS_LIBRARY.find(s => s.id === sys.id);
+      data.systems.forEach(function (sys) {
+        var lib = SYSTEMS_LIBRARY.find(function (s) { return s.id === sys.id; });
         addedSystems.push({
           id: sys.id,
           uid: sys.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -681,93 +765,130 @@
           description: lib ? lib.description : '',
           image: sys.image || (lib ? lib.image : ''),
           draft_notes: sys.draft_notes || '',
-          deliverables: sys.deliverables || (lib ? [...lib.deliverables] : []),
-          requirements: sys.requirements || (lib ? [...lib.requirements] : [])
+          deliverables: sys.deliverables || (lib ? lib.deliverables.slice() : []),
+          requirements: sys.requirements || (lib ? lib.requirements.slice() : [])
         });
       });
     }
     renderAddedSystems();
 
     // Scope
-    scopeItems = data.scope_of_work?.draft_bullets || data.scope_of_work?.final_bullets || [];
+    var sow = data.scope_of_work;
+    scopeItems = (sow && sow.draft_bullets) || (sow && sow.final_bullets) || [];
     renderScopeItems();
 
     // Timeline
-    milestones = data.timeline?.milestones || [];
+    milestones = (data.timeline && data.timeline.milestones) || [];
     renderMilestones();
 
     // Pricing
-    document.getElementById('pricingMode').value = data.pricing?.mode || 'one_time';
-    document.getElementById('pricingCurrency').value = data.pricing?.currency || 'usd';
-    document.getElementById('pricingNotes').value = data.pricing?.notes || '';
-    pricingLineItems = (data.pricing?.items || []).map(i => ({ ...i }));
+    var pricing = data.pricing || {};
+    document.getElementById('pricingCurrency').value = pricing.currency || 'usd';
+    document.getElementById('pricingNotes').value = pricing.notes || '';
+    document.getElementById('dueNowAmount').value = pricing.due_now_cents ? (pricing.due_now_cents / 100).toFixed(2) : '';
+
+    pricingLineItems = (pricing.items || []).map(function (i) {
+      return {
+        name: i.name || '',
+        pricing_type: i.pricing_type || 'one_time',
+        setup_cents: i.setup_cents || i.amount_cents || 0,
+        monthly_cents: i.monthly_cents || 0
+      };
+    });
     renderPricingItems();
 
     // Settings
-    document.getElementById('settingsTone').value = data.settings?.tone || 'Professional';
-    document.getElementById('settingsIndustry').value = data.settings?.industry || 'Service Business';
-    document.getElementById('settingsShowImages').checked = data.settings?.show_images !== false;
-    document.getElementById('settingsDeposit').checked = data.settings?.deposit_required || false;
-    document.getElementById('settingsPayText').value = data.settings?.pay_button_text || 'Pay Now';
+    var settings = data.settings || {};
+    document.getElementById('settingsTone').value = settings.tone || 'Professional';
+    document.getElementById('settingsIndustry').value = settings.industry || 'Service Business';
+    document.getElementById('settingsShowImages').checked = settings.show_images !== false;
+    document.getElementById('settingsPayText').value = settings.pay_button_text || 'Pay Now';
 
     schedulePreviewUpdate();
   }
 
   // ============================================
-  // WEBHOOK
+  // WEBHOOK — Persistent (saved on server)
   // ============================================
   function loadWebhookUrl() {
-    const saved = localStorage.getItem('flowtier_webhook_url');
-    if (saved) {
-      document.getElementById('webhookUrl').value = saved;
-    }
+    fetch('/api/webhook-config')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.url) {
+          document.getElementById('webhookUrl').value = data.url;
+        }
+      })
+      .catch(function () { /* ignore */ });
   }
 
-  window.sendWebhook = async function () {
-    const url = document.getElementById('webhookUrl').value.trim();
-    if (!url) {
-      alert('Please enter a Make.com Webhook URL.');
+  window.saveWebhookUrl = function () {
+    var url = document.getElementById('webhookUrl').value.trim();
+    var statusEl = document.getElementById('webhookSaveStatus');
+
+    fetch('/api/webhook-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success) {
+        statusEl.innerHTML = '<span style="color:var(--color-success);">Webhook URL saved successfully.</span>';
+      } else {
+        statusEl.innerHTML = '<span style="color:var(--color-danger);">Failed to save.</span>';
+      }
+      setTimeout(function () { statusEl.innerHTML = ''; }, 3000);
+    })
+    .catch(function (err) {
+      statusEl.innerHTML = '<span style="color:var(--color-danger);">Error: ' + err.message + '</span>';
+    });
+  };
+
+  // ============================================
+  // CREATE PROPOSAL — Save + Send URL to webhook
+  // ============================================
+  window.createProposal = async function () {
+    var data = buildJSON();
+
+    if (!data.slug) {
+      alert('Please enter a client name or company to generate a slug.');
+      return;
+    }
+    if (!data.client.name && !data.client.company) {
+      alert('Please fill in at least the client name or company.');
       return;
     }
 
-    localStorage.setItem('flowtier_webhook_url', url);
-
-    const data = buildJSON();
-    const statusPanel = document.getElementById('webhookStatus');
-    const statusText = document.getElementById('webhookStatusText');
-    const responseEl = document.getElementById('webhookResponse');
+    var statusPanel = document.getElementById('createStatus');
+    var statusText = document.getElementById('createStatusText');
+    var responseEl = document.getElementById('createResponse');
 
     statusPanel.style.display = 'block';
-    statusText.innerHTML = '<span class="badge badge-warning">Sending...</span>';
+    statusText.innerHTML = '<span class="badge badge-warning">Creating proposal...</span>';
     responseEl.textContent = '';
 
     try {
-      const response = await fetch(url, {
+      var response = await fetch('/api/proposals', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Source': 'flowtier-proposal-builder',
-          'X-Proposal-Id': data.proposal_id || ''
+          'X-Source': 'flowtier-proposal-builder'
         },
         body: JSON.stringify(data)
       });
 
-      const text = await response.text();
-      let prettyBody = text;
-      try {
-        prettyBody = JSON.stringify(JSON.parse(text), null, 2);
-      } catch (e) { /* not JSON */ }
+      var result = await response.json();
+      var now = new Date().toLocaleString();
 
-      const now = new Date().toLocaleString();
-      if (response.ok) {
-        statusText.innerHTML = `<span class="badge badge-success">Success (${response.status})</span> <span style="color:var(--color-text-muted);font-size:0.75rem;">Last sent: ${now}</span>`;
+      if (response.ok && result.success) {
+        statusText.innerHTML = '<span class="badge badge-success">Proposal Created!</span> <span style="color:var(--color-text-muted);font-size:0.75rem;">' + now + '</span>';
+        responseEl.textContent = 'URL: ' + result.url + '\n\nThe proposal URL and client details have been sent to your Make.com webhook.';
       } else {
-        statusText.innerHTML = `<span class="badge badge-danger">Error (${response.status})</span> <span style="color:var(--color-text-muted);font-size:0.75rem;">Last sent: ${now}</span>`;
+        statusText.innerHTML = '<span class="badge badge-danger">Error (' + response.status + ')</span>';
+        responseEl.textContent = result.error || 'Unknown error';
       }
-      responseEl.textContent = prettyBody || '(empty response)';
     } catch (err) {
-      const now = new Date().toLocaleString();
-      statusText.innerHTML = `<span class="badge badge-danger">Failed</span> <span style="color:var(--color-text-muted);font-size:0.75rem;">${now}</span>`;
+      statusText.innerHTML = '<span class="badge badge-danger">Failed</span>';
       responseEl.textContent = err.message;
     }
   };
@@ -776,7 +897,7 @@
   // CHANGE LISTENERS
   // ============================================
   function attachChangeListeners() {
-    const formPanel = document.getElementById('formPanel');
+    var formPanel = document.getElementById('formPanel');
     formPanel.addEventListener('input', function (e) {
       if (e.target.matches('input, textarea, select')) {
         schedulePreviewUpdate();
@@ -786,7 +907,7 @@
       if (e.target.matches('input, select')) {
         schedulePreviewUpdate();
         if (e.target.id === 'pricingCurrency') {
-          updatePricingTotal();
+          updatePricingTotals();
         }
       }
     });
@@ -796,18 +917,18 @@
   // TOAST
   // ============================================
   function showToast(msg) {
-    const existing = document.querySelector('.toast-msg');
+    var existing = document.querySelector('.toast-msg');
     if (existing) existing.remove();
 
-    const toast = document.createElement('div');
+    var toast = document.createElement('div');
     toast.className = 'toast-msg';
     toast.textContent = msg;
-    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--color-text);color:white;padding:12px 24px;border-radius:var(--radius-md);font-size:0.875rem;font-weight:600;box-shadow:var(--shadow-lg);z-index:9999;animation:fadeInUp 0.3s ease;';
+    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--color-primary);color:var(--color-text-on-primary);padding:12px 24px;border-radius:var(--radius-md);font-size:0.875rem;font-weight:600;box-shadow:var(--shadow-lg);z-index:9999;animation:fadeInUp 0.3s ease;';
     document.body.appendChild(toast);
-    setTimeout(() => {
+    setTimeout(function () {
       toast.style.opacity = '0';
       toast.style.transition = 'opacity 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
+      setTimeout(function () { toast.remove(); }, 300);
     }, 2500);
   }
 
@@ -816,7 +937,7 @@
   // ============================================
   function escapeHtml(str) {
     if (!str) return '';
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
   }
@@ -829,7 +950,7 @@
   // ============================================
   // IFRAME LOAD
   // ============================================
-  const iframe = document.getElementById('previewFrame');
+  var iframe = document.getElementById('previewFrame');
   if (iframe) {
     iframe.addEventListener('load', function () {
       setTimeout(updatePreview, 300);

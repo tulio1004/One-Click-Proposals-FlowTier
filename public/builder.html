@@ -18,7 +18,7 @@
 
       <div class="builder-header">
         <div>
-          <div class="logo-text">FlowTier</div>
+          <img src="/static/images/logo.webp" alt="FlowTier" style="height:36px;margin-bottom:4px;">
           <h1>Proposal Builder</h1>
         </div>
         <div class="action-bar">
@@ -73,8 +73,8 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="proposalSlug">Slug (URL path)</label>
-            <input type="text" id="proposalSlug" placeholder="acme-operations">
+            <label for="proposalSlug">Slug (auto-generated)</label>
+            <input type="text" id="proposalSlug" placeholder="auto-generated-from-company" readonly style="opacity:0.7;cursor:default;">
           </div>
           <div class="form-group">
             <label for="proposalDate">Date</label>
@@ -147,13 +147,6 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="pricingMode">Pricing Mode</label>
-            <select id="pricingMode">
-              <option value="one_time">One-Time</option>
-              <option value="setup_plus_monthly">Setup + Monthly</option>
-            </select>
-          </div>
-          <div class="form-group">
             <label for="pricingCurrency">Currency</label>
             <select id="pricingCurrency">
               <option value="usd">USD ($)</option>
@@ -165,11 +158,28 @@
             </select>
           </div>
         </div>
+        <div class="pricing-header-row">
+          <span class="ph-name">Item</span>
+          <span class="ph-type">Type</span>
+          <span class="ph-setup">Setup / One-Time</span>
+          <span class="ph-monthly">Monthly</span>
+          <span class="ph-action"></span>
+        </div>
         <div id="pricingItems"></div>
         <button class="add-item-btn" onclick="addPricingItem()">+ Add Line Item</button>
         <div class="pricing-total" id="pricingTotal">
-          <span class="total-label">Total:</span>
-          <span class="total-amount" id="totalAmount">$0.00</span>
+          <span class="total-label">Total Setup/One-Time:</span>
+          <span class="total-amount" id="totalSetup">$0.00</span>
+        </div>
+        <div class="pricing-total" id="pricingTotalMonthly" style="margin-top:4px;">
+          <span class="total-label">Total Monthly:</span>
+          <span class="total-amount" id="totalMonthly">$0.00</span>
+        </div>
+        <div class="pricing-due-now">
+          <div class="form-group">
+            <label for="dueNowAmount"><strong>Due Now (amount to charge via Stripe)</strong></label>
+            <input type="number" id="dueNowAmount" placeholder="0.00" step="0.01" min="0" oninput="schedulePreviewUpdate()">
+          </div>
         </div>
         <div class="form-group" style="margin-top:16px;">
           <label for="pricingNotes">Pricing Notes</label>
@@ -217,30 +227,35 @@
           </label>
         </div>
         <div class="form-group">
-          <label class="toggle-wrap">
-            <input type="checkbox" id="settingsDeposit">
-            <span class="toggle-label">Deposit required</span>
-          </label>
-        </div>
-        <div class="form-group">
           <label for="settingsPayText">Pay Button Text</label>
           <input type="text" id="settingsPayText" value="Pay Now" placeholder="Pay Now">
         </div>
       </div>
 
-      <!-- Webhook -->
+      <!-- Webhook (persistent) -->
       <div class="webhook-section">
         <h3>Make.com Webhook</h3>
+        <p style="color:var(--color-text-muted);font-size:0.8125rem;margin-bottom:12px;">Set your webhook URL once. It will be saved on the server and used for all notifications (proposal created, signed, paid).</p>
         <div class="form-group">
           <label for="webhookUrl">Webhook URL</label>
           <input type="url" id="webhookUrl" placeholder="https://hook.us1.make.com/...">
         </div>
-        <div class="action-bar">
-          <button class="btn btn-primary btn-sm" onclick="sendWebhook()">Send JSON to Make.com</button>
+        <div class="action-bar" style="gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="saveWebhookUrl()">Save Webhook URL</button>
         </div>
-        <div class="status-panel" id="webhookStatus" style="margin-top:16px;display:none;">
-          <div id="webhookStatusText"></div>
-          <pre id="webhookResponse"></pre>
+        <div id="webhookSaveStatus" style="margin-top:8px;font-size:0.8125rem;"></div>
+      </div>
+
+      <!-- Submit Proposal -->
+      <div class="builder-section" style="border:2px solid var(--color-primary);background:var(--color-primary-light);">
+        <h3 style="color:var(--color-primary);margin-bottom:8px;">Create & Send Proposal</h3>
+        <p style="color:var(--color-text-secondary);font-size:0.8125rem;margin-bottom:16px;">This will save the proposal on the server, generate a unique URL, and send the link + client details to your Make.com webhook.</p>
+        <button class="btn btn-primary" onclick="createProposal()" style="width:100%;padding:14px;font-size:1rem;">
+          Create Proposal & Send to Make.com
+        </button>
+        <div class="status-panel" id="createStatus" style="margin-top:16px;display:none;">
+          <div id="createStatusText"></div>
+          <pre id="createResponse"></pre>
         </div>
       </div>
 
