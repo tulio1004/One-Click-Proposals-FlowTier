@@ -1065,7 +1065,13 @@ Content-Type: application/json
           signed_at: new Date().toISOString(),
           ip: '203.0.113.42'
         },
-        project_name: 'AI Front Office Automation'
+        project_name: 'AI Front Office Automation',
+        payment_link: 'https://checkout.stripe.com/c/pay/cs_live_test_example123',
+        amount_due: {
+          cents: 50000,
+          formatted: '$500.00',
+          currency: 'USD'
+        }
       },
       proposal_paid: {
         event: 'proposal_paid',

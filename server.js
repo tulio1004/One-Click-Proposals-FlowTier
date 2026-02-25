@@ -596,7 +596,7 @@ app.delete('/api/proposals/:slug', (req, res) => {
 // ============================================
 // API: Record signature + webhook notification
 // ============================================
-app.post('/api/proposals/:slug/sign', (req, res) => {
+app.post('/api/proposals/:slug/sign', async (req, res) => {
   const slug = sanitizeSlug(req.params.slug);
   if (!slug) return res.status(400).json({ error: 'Invalid slug' });
 
@@ -629,7 +629,53 @@ app.post('/api/proposals/:slug/sign', (req, res) => {
 
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'proposals.flowtier.io';
-    const proposalUrl = `${protocol}://${host}/${slug}`;
+    const baseUrl = `${protocol}://${host}`;
+    const proposalUrl = `${baseUrl}/${slug}`;
+
+    // Generate Stripe payment link if there's an amount due
+    let paymentLink = null;
+    const pricing = data.pricing || {};
+    const dueNowCents = pricing.due_now_cents || 0;
+
+    if (stripe && dueNowCents > 0) {
+      try {
+        const client = data.client || {};
+        const project = data.project || {};
+        const currency = (pricing.currency || 'usd').toLowerCase();
+        let description = `Proposal: ${project.name || 'Untitled Project'}`;
+        if (client.company) description += ` — ${client.company}`;
+
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          mode: 'payment',
+          customer_email: client.email || undefined,
+          line_items: [{
+            price_data: {
+              currency: currency,
+              product_data: {
+                name: project.name || 'Proposal Payment',
+                description: description
+              },
+              unit_amount: dueNowCents
+            },
+            quantity: 1
+          }],
+          metadata: {
+            slug: slug,
+            proposal_id: data.proposal_id || '',
+            client_name: client.name || '',
+            client_company: client.company || ''
+          },
+          success_url: `${baseUrl}/${slug}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${baseUrl}/${slug}?payment=cancelled`
+        });
+
+        paymentLink = session.url;
+        console.log(`[${new Date().toISOString()}] Payment link generated for signed proposal: ${slug}`);
+      } catch (stripeErr) {
+        console.error('[Stripe] Error generating payment link on sign:', stripeErr.message);
+      }
+    }
 
     sendWebhookNotification('proposal_signed', {
       proposal_url: proposalUrl,
@@ -642,7 +688,13 @@ app.post('/api/proposals/:slug/sign', (req, res) => {
         phone: (data.client && data.client.phone) || ''
       },
       signature: data.signature,
-      project_name: (data.project && data.project.name) || ''
+      project_name: (data.project && data.project.name) || '',
+      payment_link: paymentLink,
+      amount_due: {
+        cents: dueNowCents,
+        formatted: `$${(dueNowCents / 100).toFixed(2)}`,
+        currency: (pricing.currency || 'usd').toUpperCase()
+      }
     }).catch(err => console.error('[Webhook] Error:', err));
 
     return res.json({ success: true, signature: data.signature });
