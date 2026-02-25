@@ -8,6 +8,92 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/index.css">
+  <!-- Quill Rich Text Editor -->
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <style>
+    /* Quill Dark Theme Overrides */
+    .ql-toolbar.ql-snow {
+      background: var(--color-surface-raised, #1a2332);
+      border-color: var(--color-border, #2a3a4a) !important;
+      border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
+    }
+    .ql-container.ql-snow {
+      border-color: var(--color-border, #2a3a4a) !important;
+      border-radius: 0 0 var(--radius-md, 8px) var(--radius-md, 8px);
+      background: var(--color-surface, #0d1520);
+      color: var(--color-text, #e0e0e0);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+    }
+    .ql-editor {
+      min-height: 80px;
+      color: var(--color-text, #e0e0e0);
+      line-height: 1.6;
+    }
+    .ql-editor.ql-blank::before {
+      color: var(--color-text-muted, #6b7a8d);
+      font-style: italic;
+    }
+    .ql-snow .ql-stroke {
+      stroke: var(--color-text-muted, #8899aa) !important;
+    }
+    .ql-snow .ql-fill,
+    .ql-snow .ql-stroke.ql-fill {
+      fill: var(--color-text-muted, #8899aa) !important;
+    }
+    .ql-snow .ql-picker {
+      color: var(--color-text-muted, #8899aa) !important;
+    }
+    .ql-snow .ql-picker-options {
+      background: var(--color-surface-raised, #1a2332) !important;
+      border-color: var(--color-border, #2a3a4a) !important;
+    }
+    .ql-snow .ql-picker-item:hover,
+    .ql-snow .ql-picker-item.ql-selected {
+      color: var(--color-primary, #00E676) !important;
+    }
+    .ql-snow .ql-picker-label:hover .ql-stroke,
+    .ql-snow .ql-picker-label.ql-active .ql-stroke {
+      stroke: var(--color-primary, #00E676) !important;
+    }
+    .ql-toolbar button:hover .ql-stroke,
+    .ql-toolbar button.ql-active .ql-stroke {
+      stroke: var(--color-primary, #00E676) !important;
+    }
+    .ql-toolbar button:hover .ql-fill,
+    .ql-toolbar button.ql-active .ql-fill {
+      fill: var(--color-primary, #00E676) !important;
+    }
+    .ql-editor h1, .ql-editor h2, .ql-editor h3 {
+      color: var(--color-text, #e0e0e0);
+    }
+    .ql-editor a {
+      color: var(--color-primary, #00E676);
+    }
+    .ql-snow .ql-tooltip {
+      background: var(--color-surface-raised, #1a2332) !important;
+      border-color: var(--color-border, #2a3a4a) !important;
+      color: var(--color-text, #e0e0e0) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .ql-snow .ql-tooltip input[type=text] {
+      background: var(--color-surface, #0d1520) !important;
+      border-color: var(--color-border, #2a3a4a) !important;
+      color: var(--color-text, #e0e0e0) !important;
+    }
+    .quill-editor-wrap {
+      margin-bottom: 4px;
+    }
+    .quill-editor-wrap .ql-editor {
+      min-height: 100px;
+    }
+    .quill-editor-wrap.compact .ql-editor {
+      min-height: 60px;
+    }
+    .quill-editor-wrap.tall .ql-editor {
+      min-height: 200px;
+    }
+  </style>
 </head>
 <body>
 
@@ -93,8 +179,10 @@
           <span class="section-num">C</span> Problem
         </div>
         <div class="form-group">
-          <label for="problemDraft">Problem Statement (Draft)</label>
-          <textarea id="problemDraft" rows="4" placeholder="Describe the client's current challenges..."></textarea>
+          <label>Problem Statement (Draft)</label>
+          <div class="quill-editor-wrap" id="problemDraftWrap">
+            <div id="problemDraft"></div>
+          </div>
         </div>
       </div>
 
@@ -104,8 +192,10 @@
           <span class="section-num">D</span> Solution
         </div>
         <div class="form-group">
-          <label for="solutionDraft">Solution Overview (Draft)</label>
-          <textarea id="solutionDraft" rows="4" placeholder="Describe the proposed solution..."></textarea>
+          <label>Solution Overview (Draft)</label>
+          <div class="quill-editor-wrap" id="solutionDraftWrap">
+            <div id="solutionDraft"></div>
+          </div>
         </div>
       </div>
 
@@ -191,8 +281,10 @@
           </div>
         </div>
         <div class="form-group" style="margin-top:16px;">
-          <label for="pricingNotes">Pricing Notes</label>
-          <textarea id="pricingNotes" rows="2" placeholder="Optional notes..."></textarea>
+          <label>Pricing Notes</label>
+          <div class="quill-editor-wrap compact" id="pricingNotesWrap">
+            <div id="pricingNotes"></div>
+          </div>
         </div>
       </div>
 
@@ -250,7 +342,9 @@
           Edit the terms template below. Use <code>{{company_name}}</code> as a placeholder for the client's company name and <code>{{date}}</code> for the proposal date. Changes are saved on the server and persist across sessions.
         </p>
         <div class="form-group">
-          <textarea id="termsTemplate" rows="12" placeholder="Loading terms..." style="font-size:0.8125rem;line-height:1.7;"></textarea>
+          <div class="quill-editor-wrap tall" id="termsTemplateWrap">
+            <div id="termsTemplate"></div>
+          </div>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="saveTerms()">Save Terms</button>
         <span id="termsSaveStatus" style="margin-left:12px;font-size:0.8125rem;"></span>
@@ -315,6 +409,7 @@
   <!-- Hidden file input for JSON loading -->
   <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleFileLoad(event)">
 
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
   <script src="/static/builder.js"></script>
 </body>
 </html>

@@ -50,6 +50,16 @@
     return text.split(/\n\n+/).map(function (p) { return '<p>' + escapeHtml(p.trim()) + '</p>'; }).join('');
   }
 
+  function renderRichText(text) {
+    if (!text) return '';
+    // If content contains HTML tags, render as-is (from Quill editor)
+    if (text.indexOf('<') !== -1 && (text.indexOf('<p>') !== -1 || text.indexOf('<h') !== -1 || text.indexOf('<ul>') !== -1 || text.indexOf('<ol>') !== -1 || text.indexOf('<strong>') !== -1 || text.indexOf('<em>') !== -1)) {
+      return text;
+    }
+    // Otherwise, treat as plain text and convert newlines to paragraphs
+    return nl2p(text);
+  }
+
   // --- Determine the slug from the URL path ---
   function getSlugFromPath() {
     var path = window.location.pathname;
@@ -306,7 +316,7 @@
       html += '<div class="proposal-section">';
       html += '<div class="proposal-section-label">Challenge</div>';
       html += '<h2>The Problem</h2>';
-      html += nl2p(problemText);
+      html += renderRichText(problemText);
       html += '</div>';
     }
 
@@ -317,7 +327,7 @@
       html += '<div class="proposal-section">';
       html += '<div class="proposal-section-label">Approach</div>';
       html += '<h2>The Solution</h2>';
-      html += nl2p(solutionText);
+      html += renderRichText(solutionText);
       html += '</div>';
     }
 
@@ -348,7 +358,7 @@
         html += '<h3>' + escapeHtml(sys.name) + '</h3>';
 
         if (summary) {
-          html += '<div class="system-summary">' + escapeHtml(summary) + '</div>';
+          html += '<div class="system-summary">' + renderRichText(summary) + '</div>';
         }
 
         if (deliverables.length > 0) {
@@ -496,7 +506,7 @@
       html += '</tfoot></table>';
 
       if (pricing.notes) {
-        html += '<div class="pricing-notes">' + escapeHtml(pricing.notes) + '</div>';
+        html += '<div class="pricing-notes">' + renderRichText(pricing.notes) + '</div>';
       }
 
       html += '</div>';
@@ -521,28 +531,29 @@
 
     var termsTemplate = data.terms_template || '';
     if (termsTemplate) {
-      // Replace placeholders
+      // Replace placeholders in the template
       var processedTerms = termsTemplate
         .replace(/\{\{company_name\}\}/g, escapeHtml(companyName))
         .replace(/\{\{date\}\}/g, formatDate(data.created_date) || new Date().toLocaleDateString());
 
-      // Convert to HTML paragraphs and headers
-      var termsLines = processedTerms.split('\n');
-      var termsHtml = '';
-      termsLines.forEach(function (line) {
-        var trimmed = line.trim();
-        if (!trimmed) return;
-        // Lines that look like headers (all caps or short bold lines)
-        if (trimmed.length < 80 && trimmed === trimmed.toUpperCase() && trimmed.length > 3) {
-          termsHtml += '<h4>' + escapeHtml(trimmed) + '</h4>';
-        } else if (trimmed.match(/^\d+\.\s/)) {
-          // Numbered items
-          termsHtml += '<p>' + escapeHtml(trimmed) + '</p>';
-        } else {
-          termsHtml += '<p>' + escapeHtml(trimmed) + '</p>';
-        }
-      });
-      html += termsHtml;
+      // Check if content is already HTML (from Quill editor)
+      if (processedTerms.indexOf('<p>') !== -1 || processedTerms.indexOf('<h') !== -1 || processedTerms.indexOf('<ul>') !== -1 || processedTerms.indexOf('<ol>') !== -1) {
+        html += processedTerms;
+      } else {
+        // Legacy plain text: convert to HTML paragraphs and headers
+        var termsLines = processedTerms.split('\n');
+        var termsHtml = '';
+        termsLines.forEach(function (line) {
+          var trimmed = line.trim();
+          if (!trimmed) return;
+          if (trimmed.length < 80 && trimmed === trimmed.toUpperCase() && trimmed.length > 3) {
+            termsHtml += '<h4>' + escapeHtml(trimmed) + '</h4>';
+          } else {
+            termsHtml += '<p>' + escapeHtml(trimmed) + '</p>';
+          }
+        });
+        html += termsHtml;
+      }
     } else {
       // Default terms
       html += '<h4>Payment Terms</h4>';

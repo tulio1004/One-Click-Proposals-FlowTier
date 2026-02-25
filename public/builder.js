@@ -189,15 +189,98 @@
   let updateTimer = null;
 
   // ============================================
+  // QUILL RICH TEXT EDITORS
+  // ============================================
+  var quillToolbar = [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    [{ 'indent': '-1' }, { 'indent': '+1' }],
+    ['link'],
+    [{ 'color': [] }, { 'background': [] }],
+    ['clean']
+  ];
+
+  var quillEditors = {}; // Store all Quill instances by id
+  var systemQuillEditors = {}; // Store system-specific Quill instances by uid
+
+  function createQuillEditor(elementId, placeholder) {
+    var el = document.getElementById(elementId);
+    if (!el) return null;
+    var quill = new Quill('#' + elementId, {
+      theme: 'snow',
+      placeholder: placeholder || 'Type here...',
+      modules: { toolbar: quillToolbar }
+    });
+    quill.on('text-change', function () {
+      schedulePreviewUpdate();
+    });
+    quillEditors[elementId] = quill;
+    return quill;
+  }
+
+  function getQuillHTML(editorId) {
+    var quill = quillEditors[editorId];
+    if (!quill) return '';
+    var html = quill.root.innerHTML;
+    if (html === '<p><br></p>' || html === '<p></p>') return '';
+    return html;
+  }
+
+  function setQuillHTML(editorId, html) {
+    var quill = quillEditors[editorId];
+    if (!quill) return;
+    if (!html) {
+      quill.setText('');
+    } else {
+      quill.root.innerHTML = html;
+    }
+  }
+
+  function initSystemQuill(uid, placeholder, initialContent) {
+    var editorId = 'sys_notes_' + uid;
+    var el = document.getElementById(editorId);
+    if (!el) return null;
+    var quill = new Quill('#' + editorId, {
+      theme: 'snow',
+      placeholder: placeholder || 'Notes about this system...',
+      modules: { toolbar: quillToolbar }
+    });
+    if (initialContent) {
+      // Check if content looks like HTML
+      if (initialContent.indexOf('<') !== -1) {
+        quill.root.innerHTML = initialContent;
+      } else {
+        quill.setText(initialContent);
+      }
+    }
+    quill.on('text-change', function () {
+      schedulePreviewUpdate();
+    });
+    quillEditors[editorId] = quill;
+    systemQuillEditors[uid] = quill;
+    return quill;
+  }
+
+  // ============================================
   // INITIALIZATION
   // ============================================
   function init() {
     populateDropdown();
     loadWebhookUrl();
-    loadTermsTemplate();
     setDefaultDate();
     attachChangeListeners();
     setupAutoSlug();
+
+    // Initialize Quill editors for static fields
+    createQuillEditor('problemDraft', 'Describe the client\'s current challenges...');
+    createQuillEditor('solutionDraft', 'Describe the proposed solution...');
+    createQuillEditor('pricingNotes', 'Optional notes...');
+    createQuillEditor('termsTemplate', 'Terms and conditions...');
+
+    // Load terms after Quill is initialized
+    loadTermsTemplate();
+
     schedulePreviewUpdate();
 
     // Fix: capture dropdown value on change
@@ -319,14 +402,14 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data.template) {
-          document.getElementById('termsTemplate').value = data.template;
+          setQuillHTML('termsTemplate', data.template);
         }
       })
       .catch(function () { /* ignore */ });
   }
 
   window.saveTerms = function () {
-    var template = document.getElementById('termsTemplate').value;
+    var template = getQuillHTML('termsTemplate');
     var statusEl = document.getElementById('termsSaveStatus');
 
     fetch('/api/terms', {
@@ -440,10 +523,12 @@
       html += '<button class="btn-icon btn-danger" onclick="removeSystem(\'' + sys.uid + '\')" title="Remove system">&times;</button>';
       html += '</div></div>';
 
-      // Draft notes
+      // Draft notes (Quill rich text editor)
       html += '<div class="form-group">';
       html += '<label>' + (isCustom ? 'System Description' : 'Draft Notes (editable)') + '</label>';
-      html += '<textarea id="sys_notes_' + sys.uid + '" rows="3" placeholder="' + (isCustom ? 'Describe this custom automation...' : 'Notes about this system for this client...') + '" oninput="updateSystemField(\'' + sys.uid + '\', \'draft_notes\', this.value)">' + escapeHtml(sys.draft_notes || '') + '</textarea>';
+      html += '<div class="quill-editor-wrap compact">';
+      html += '<div id="sys_notes_' + sys.uid + '"></div>';
+      html += '</div>';
       html += '</div>';
 
       // Deliverables
@@ -472,6 +557,14 @@
     });
 
     container.innerHTML = html;
+
+    // Initialize Quill editors for each system's notes
+    systemQuillEditors = {};
+    addedSystems.forEach(function (sys) {
+      var isCustom = sys.id === 'custom_automation';
+      var placeholder = isCustom ? 'Describe this custom automation...' : 'Notes about this system for this client...';
+      initSystemQuill(sys.uid, placeholder, sys.draft_notes || '');
+    });
   }
 
   window.updateSystemField = function (uid, field, value) {
@@ -654,7 +747,7 @@
     var systems = addedSystems.map(function (sys) {
       var delContainer = document.getElementById('sys_del_' + sys.uid);
       var reqContainer = document.getElementById('sys_req_' + sys.uid);
-      var notesEl = document.getElementById('sys_notes_' + sys.uid);
+      var sysQuill = systemQuillEditors[sys.uid];
 
       var deliverables = [];
       if (delContainer) {
@@ -673,7 +766,7 @@
       return {
         id: sys.id,
         name: sys.name,
-        draft_notes: notesEl ? notesEl.value : (sys.draft_notes || ''),
+        draft_notes: sysQuill ? (sysQuill.root.innerHTML === '<p><br></p>' ? '' : sysQuill.root.innerHTML) : (sys.draft_notes || ''),
         final_copy: null,
         deliverables: deliverables,
         requirements: requirements,
@@ -704,7 +797,7 @@
     var dueNowCents = Math.round(dueNowVal * 100);
 
     // Get terms template
-    var termsTemplate = document.getElementById('termsTemplate').value || '';
+    var termsTemplate = getQuillHTML('termsTemplate');
 
     return {
       proposal_id: document.getElementById('proposalId').value,
@@ -720,11 +813,11 @@
         name: document.getElementById('projectName').value
       },
       problem: {
-        draft: document.getElementById('problemDraft').value,
+        draft: getQuillHTML('problemDraft'),
         final: null
       },
       solution: {
-        draft: document.getElementById('solutionDraft').value,
+        draft: getQuillHTML('solutionDraft'),
         final: null
       },
       systems: systems,
@@ -742,7 +835,7 @@
         total_setup_cents: totalSetup,
         total_monthly_cents: totalMonthly,
         due_now_cents: dueNowCents,
-        notes: document.getElementById('pricingNotes').value
+        notes: getQuillHTML('pricingNotes')
       },
       terms_template: termsTemplate,
       settings: {
@@ -874,9 +967,9 @@
     document.getElementById('proposalSlug').value = data.slug || '';
     document.getElementById('proposalDate').value = data.created_date ? data.created_date.split('T')[0] : '';
 
-    // Problem & Solution
-    document.getElementById('problemDraft').value = (data.problem && data.problem.draft) || '';
-    document.getElementById('solutionDraft').value = (data.solution && data.solution.draft) || '';
+    // Problem & Solution (Quill editors)
+    setQuillHTML('problemDraft', (data.problem && data.problem.draft) || '');
+    setQuillHTML('solutionDraft', (data.solution && data.solution.draft) || '');
 
     // Systems
     addedSystems = [];
@@ -909,7 +1002,7 @@
     // Pricing — handle both old and new format
     var pricing = data.pricing || {};
     document.getElementById('pricingCurrency').value = pricing.currency || 'usd';
-    document.getElementById('pricingNotes').value = pricing.notes || '';
+    setQuillHTML('pricingNotes', pricing.notes || '');
     document.getElementById('dueNowAmount').value = pricing.due_now_cents ? (pricing.due_now_cents / 100).toFixed(2) : '';
 
     pricingLineItems = (pricing.items || []).map(function (i) {
@@ -932,7 +1025,7 @@
 
     // Terms
     if (data.terms_template) {
-      document.getElementById('termsTemplate').value = data.terms_template;
+      setQuillHTML('termsTemplate', data.terms_template);
     }
 
     // Settings
