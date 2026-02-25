@@ -386,11 +386,13 @@
       html += '<div class="proposal-section">';
       html += '<div class="proposal-section-label">Scope</div>';
       html += '<h2>Scope of Work</h2>';
-      html += '<ul class="scope-list">';
+      html += '<div class="scope-list">';
       scopeBullets.forEach(function (b) {
-        html += '<li><span class="scope-icon">&#10003;</span><span>' + escapeHtml(b) + '</span></li>';
+        // Check if content is rich HTML (from Quill) or plain text
+        var isRichHTML = b && b.indexOf('<') !== -1 && (b.indexOf('<p>') !== -1 || b.indexOf('<h') !== -1 || b.indexOf('<ul>') !== -1 || b.indexOf('<ol>') !== -1 || b.indexOf('<strong>') !== -1);
+        html += '<div class="scope-item"><span class="scope-icon">&#10003;</span><div class="scope-content">' + (isRichHTML ? b : escapeHtml(b)) + '</div></div>';
       });
-      html += '</ul></div>';
+      html += '</div></div>';
     }
 
     // ============================

@@ -442,8 +442,16 @@ textarea {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.scope-item-row .scope-item-editor {
+  min-width: 0;
+}
+
+.scope-item-row .scope-remove-btn {
+  margin-top: 42px;
 }
 
 /* --- Milestone Row --- */
@@ -951,7 +959,8 @@ textarea {
   padding: 0;
 }
 
-.scope-list li {
+.scope-list li,
+.scope-item {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -961,7 +970,8 @@ textarea {
   color: var(--color-text-secondary);
 }
 
-.scope-list li .scope-icon {
+.scope-list li .scope-icon,
+.scope-item .scope-icon {
   flex-shrink: 0;
   width: 22px;
   height: 22px;
@@ -974,6 +984,29 @@ textarea {
   font-size: 0.75rem;
   margin-top: 1px;
   border: 1px solid rgba(0, 230, 118, 0.2);
+}
+
+.scope-content {
+  flex: 1;
+}
+
+.scope-content p {
+  margin: 0 0 0.4em 0;
+}
+
+.scope-content p:last-child {
+  margin-bottom: 0;
+}
+
+.scope-content h1, .scope-content h2, .scope-content h3 {
+  margin: 0 0 0.3em 0;
+  font-size: 1em;
+  color: var(--color-text);
+}
+
+.scope-content ul, .scope-content ol {
+  margin: 0.3em 0;
+  padding-left: 1.5em;
 }
 
 /* Timeline */

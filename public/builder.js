@@ -587,35 +587,65 @@
   };
 
   // ============================================
-  // SCOPE OF WORK
+  // SCOPE OF WORK (with Quill rich text editors)
   // ============================================
+  var scopeQuillEditors = {};
+
   function renderScopeItems() {
     var container = document.getElementById('scopeList');
-    var html = '<ul class="editable-list">';
+    scopeQuillEditors = {};
+    var html = '';
     scopeItems.forEach(function (item, i) {
-      html += '<li><input type="text" value="' + escapeAttr(item) + '" data-scope-idx="' + i + '" oninput="updateScopeItem(this)"><button class="btn-icon" onclick="removeScopeItem(' + i + ')" title="Remove">&times;</button></li>';
+      html += '<div class="scope-item-row" data-scope-idx="' + i + '">';
+      html += '<div class="scope-item-editor">';
+      html += '<div class="quill-editor-wrap compact">';
+      html += '<div id="scope_editor_' + i + '"></div>';
+      html += '</div>';
+      html += '</div>';
+      html += '<button class="btn-icon btn-danger scope-remove-btn" onclick="removeScopeItem(' + i + ')" title="Remove">&times;</button>';
+      html += '</div>';
     });
-    html += '</ul>';
     container.innerHTML = html;
+
+    // Initialize Quill editors for each scope item
+    scopeItems.forEach(function (item, i) {
+      var editorId = 'scope_editor_' + i;
+      var el = document.getElementById(editorId);
+      if (!el) return;
+      var quill = new Quill('#' + editorId, {
+        theme: 'snow',
+        placeholder: 'Describe this scope item...',
+        modules: { toolbar: quillToolbar }
+      });
+      if (item) {
+        if (item.indexOf('<') !== -1 && (item.indexOf('<p>') !== -1 || item.indexOf('<h') !== -1 || item.indexOf('<ul>') !== -1 || item.indexOf('<strong>') !== -1)) {
+          quill.root.innerHTML = item;
+        } else {
+          quill.setText(item);
+        }
+      }
+      quill.on('text-change', function () {
+        var html = quill.root.innerHTML;
+        if (html === '<p><br></p>' || html === '<p></p>') html = '';
+        scopeItems[i] = html;
+        schedulePreviewUpdate();
+      });
+      scopeQuillEditors[i] = quill;
+    });
   }
 
   window.addScopeItem = function () {
     scopeItems.push('');
     renderScopeItems();
-    var inputs = document.querySelectorAll('#scopeList input');
-    if (inputs.length) inputs[inputs.length - 1].focus();
+    // Focus the last editor
+    var lastQuill = scopeQuillEditors[scopeItems.length - 1];
+    if (lastQuill) lastQuill.focus();
     schedulePreviewUpdate();
   };
 
   window.removeScopeItem = function (idx) {
     scopeItems.splice(idx, 1);
     renderScopeItems();
-    schedulePreviewUpdate();
-  };
-
-  window.updateScopeItem = function (el) {
-    var idx = parseInt(el.dataset.scopeIdx);
-    scopeItems[idx] = el.value;
     schedulePreviewUpdate();
   };
 
@@ -822,7 +852,7 @@
       },
       systems: systems,
       scope_of_work: {
-        draft_bullets: scopeItems.filter(function (s) { return s.trim(); }),
+        draft_bullets: scopeItems.filter(function (s) { return s && s.trim() && s !== '<p><br></p>'; }),
         final_bullets: null
       },
       timeline: {
