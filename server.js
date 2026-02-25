@@ -284,6 +284,57 @@ app.get('/builder/:slug', requireBuilderAuth, (req, res) => {
 });
 
 // ============================================
+// DEV CONSOLE (protected)
+// ============================================
+app.get('/dev', requireBuilderAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dev.html'));
+});
+
+// Test webhook endpoint — fires a test payload to the configured webhook URL
+app.post('/api/dev/test-webhook', async (req, res) => {
+  if (!isAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { event_type, payload } = req.body;
+  if (!event_type || !payload) {
+    return res.status(400).json({ error: 'Missing event_type or payload' });
+  }
+
+  const url = getWebhookUrl();
+  if (!url) {
+    return res.json({ success: false, error: 'No webhook URL configured. Go to Configuration tab to set one.' });
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Source': 'flowtier-proposal-system',
+        'X-Event-Type': event_type,
+        'X-Test': 'true'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const text = await response.text();
+    console.log(`[Dev] Test webhook fired: ${event_type} → ${response.status}`);
+
+    return res.json({
+      success: response.ok,
+      webhook_status: response.status,
+      webhook_response: text.substring(0, 500),
+      error: response.ok ? null : `Webhook returned ${response.status}`
+    });
+  } catch (err) {
+    console.error(`[Dev] Test webhook error:`, err.message);
+    return res.json({
+      success: false,
+      error: `Failed to reach webhook: ${err.message}`
+    });
+  }
+});
+
+// ============================================
 // WEBHOOK CONFIG API (protected)
 // ============================================
 app.get('/api/webhook-config', (req, res) => {
@@ -738,7 +789,7 @@ app.get('/:slug', (req, res) => {
   const slug = sanitizeSlug(req.params.slug);
   if (!slug) return res.status(400).send('Invalid URL');
 
-  const reserved = ['builder', 'api', 'static', 'favicon.ico', 'robots.txt', 'login', 'logout', 'dashboard'];
+  const reserved = ['builder', 'api', 'static', 'favicon.ico', 'robots.txt', 'login', 'logout', 'dashboard', 'dev'];
   if (reserved.includes(slug)) return res.status(404).send('Not found');
 
   const filePath = path.join(DATA_DIR, `${slug}.json`);

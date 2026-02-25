@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev Console — FlowTier Proposals</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/index.css">
+  <style>
+    /* ── Dev Console Styles ── */
+    .dev-page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    .dev-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .dev-header img {
+      height: 32px;
+    }
+    .dev-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+    .dev-header h1 span {
+      color: var(--color-primary);
+    }
+    .dev-subtitle {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 40px;
+    }
+
+    /* ── Navigation Tabs ── */
+    .dev-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: 32px;
+      position: sticky;
+      top: 0;
+      background: var(--color-bg);
+      z-index: 10;
+      padding-top: 8px;
+    }
+    .dev-tab {
+      padding: 10px 20px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      transition: var(--transition);
+      font-family: var(--font-sans);
+    }
+    .dev-tab:hover {
+      color: var(--color-text-secondary);
+    }
+    .dev-tab.active {
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+    }
+
+    .dev-section {
+      display: none;
+    }
+    .dev-section.active {
+      display: block;
+    }
+
+    /* ── Webhook Tester ── */
+    .webhook-status-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin-bottom: 28px;
+    }
+    .webhook-status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--color-danger);
+      flex-shrink: 0;
+    }
+    .webhook-status-dot.connected {
+      background: var(--color-success);
+      box-shadow: 0 0 8px rgba(0, 230, 118, 0.4);
+    }
+    .webhook-status-label {
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+      flex: 1;
+    }
+    .webhook-status-label strong {
+      color: var(--color-text);
+    }
+    .webhook-url-display {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-primary);
+      max-width: 400px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .test-cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .test-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+    .test-card:hover {
+      border-color: var(--color-border-focus);
+    }
+
+    .test-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+    .test-card-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .test-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .test-card-icon.created { background: rgba(0, 230, 118, 0.12); color: #00E676; }
+    .test-card-icon.signed  { background: rgba(100, 181, 246, 0.12); color: #64B5F6; }
+    .test-card-icon.paid    { background: rgba(255, 183, 77, 0.12); color: #FFB74D; }
+
+    .test-card-title {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+    .test-card-event {
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+    .test-card-desc {
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+    }
+
+    .test-btn {
+      padding: 10px 24px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .test-btn.fire {
+      background: var(--gradient-primary);
+      color: var(--color-text-on-primary);
+    }
+    .test-btn.fire:hover {
+      background: var(--gradient-primary-hover);
+      box-shadow: var(--shadow-glow);
+    }
+    .test-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .test-btn .spinner {
+      display: none;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: var(--color-text-on-primary);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    .test-btn.loading .spinner { display: inline-block; }
+    .test-btn.loading .btn-label { display: none; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .test-card-body {
+      position: relative;
+    }
+
+    .payload-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: var(--font-sans);
+      transition: var(--transition);
+      width: 100%;
+      text-align: left;
+    }
+    .payload-toggle:hover {
+      color: var(--color-text-secondary);
+    }
+    .payload-toggle .arrow {
+      transition: var(--transition);
+      font-size: 0.625rem;
+    }
+    .payload-toggle.open .arrow {
+      transform: rotate(90deg);
+    }
+
+    .payload-area {
+      display: none;
+      padding: 0 24px 20px;
+    }
+    .payload-area.open {
+      display: block;
+    }
+
+    pre.payload-code {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      line-height: 1.6;
+      color: var(--color-text-secondary);
+      overflow-x: auto;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre;
+      tab-size: 2;
+    }
+    pre.payload-code .key { color: #64B5F6; }
+    pre.payload-code .string { color: #81C784; }
+    pre.payload-code .number { color: #FFB74D; }
+    pre.payload-code .null { color: var(--color-text-muted); }
+
+    /* ── Response Log ── */
+    .response-area {
+      display: none;
+      padding: 0 24px 20px;
+    }
+    .response-area.visible {
+      display: block;
+    }
+    .response-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+    .response-box {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      line-height: 1.5;
+      color: var(--color-text-secondary);
+      min-height: 40px;
+    }
+    .response-box.success {
+      border-color: rgba(0, 230, 118, 0.3);
+    }
+    .response-box.error {
+      border-color: rgba(255, 82, 82, 0.3);
+    }
+    .response-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.625rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .response-status.ok {
+      background: rgba(0, 230, 118, 0.15);
+      color: #00E676;
+    }
+    .response-status.fail {
+      background: rgba(255, 82, 82, 0.15);
+      color: #FF5252;
+    }
+
+    /* ── Documentation Styles ── */
+    .doc-section {
+      margin-bottom: 40px;
+    }
+    .doc-section h2 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+    .doc-section h3 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      margin: 24px 0 8px;
+    }
+    .doc-section p {
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 0.8125rem;
+    }
+    .doc-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--color-surface);
+      color: var(--color-text-muted);
+      font-weight: 600;
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .doc-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--color-border-light);
+      color: var(--color-text-secondary);
+      vertical-align: top;
+    }
+    .doc-table code {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      background: rgba(0, 230, 118, 0.08);
+      color: var(--color-primary);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .doc-table .method {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.6875rem;
+    }
+    .method-get { color: #64B5F6; }
+    .method-post { color: #00E676; }
+    .method-delete { color: #FF5252; }
+
+    .doc-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.625rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-auth { background: rgba(255, 183, 77, 0.15); color: #FFB74D; }
+    .badge-public { background: rgba(0, 230, 118, 0.1); color: #00E676; }
+
+    pre.doc-code {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      line-height: 1.6;
+      color: var(--color-text-secondary);
+      overflow-x: auto;
+      margin: 8px 0 16px;
+      white-space: pre;
+      tab-size: 2;
+    }
+
+    .doc-note {
+      background: rgba(0, 230, 118, 0.04);
+      border-left: 3px solid var(--color-primary);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+      margin: 12px 0;
+    }
+    .doc-note strong {
+      color: var(--color-primary);
+    }
+
+    /* ── Activity Log ── */
+    .log-container {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      line-height: 1.8;
+    }
+    .log-entry {
+      color: var(--color-text-muted);
+    }
+    .log-entry .time {
+      color: var(--color-text-muted);
+    }
+    .log-entry.success .msg {
+      color: #00E676;
+    }
+    .log-entry.error .msg {
+      color: #FF5252;
+    }
+    .log-entry.info .msg {
+      color: #64B5F6;
+    }
+    .log-empty {
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    /* ── Back link ── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--color-text-muted);
+      font-size: 0.8125rem;
+      text-decoration: none;
+      margin-bottom: 24px;
+      transition: var(--transition);
+    }
+    .back-link:hover {
+      color: var(--color-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="dev-page">
+
+    <!-- Back to Dashboard -->
+    <a href="/" class="back-link">&#8592; Dashboard</a>
+
+    <!-- Header -->
+    <div class="dev-header">
+      <img src="/static/images/logo.webp" alt="FlowTier">
+      <h1>Dev <span>Console</span></h1>
+    </div>
+    <p class="dev-subtitle">Webhook testing, API reference, and endpoint documentation for the FlowTier Proposal System.</p>
+
+    <!-- Tabs -->
+    <div class="dev-tabs">
+      <button class="dev-tab active" data-tab="tester">Webhook Tester</button>
+      <button class="dev-tab" data-tab="endpoints">API Endpoints</button>
+      <button class="dev-tab" data-tab="webhooks">Webhook Payloads</button>
+      <button class="dev-tab" data-tab="config">Configuration</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- TAB 1: WEBHOOK TESTER                       -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="dev-section active" id="tab-tester">
+
+      <!-- Webhook Status -->
+      <div class="webhook-status-bar">
+        <div class="webhook-status-dot" id="webhookDot"></div>
+        <div class="webhook-status-label">
+          <strong>Webhook URL:</strong>
+          <span id="webhookStatusText">Checking...</span>
+        </div>
+        <div class="webhook-url-display" id="webhookUrlDisplay"></div>
+      </div>
+
+      <!-- Test Cards -->
+      <div class="test-cards">
+
+        <!-- PROPOSAL CREATED -->
+        <div class="test-card">
+          <div class="test-card-header">
+            <div class="test-card-info">
+              <div class="test-card-icon created">&#9889;</div>
+              <div>
+                <div class="test-card-title">Proposal Created</div>
+                <div class="test-card-event">proposal_created</div>
+                <div class="test-card-desc">Fires when a new proposal is saved from the builder.</div>
+              </div>
+            </div>
+            <button class="test-btn fire" onclick="fireTest('proposal_created')" id="btn-proposal_created">
+              <span class="spinner"></span>
+              <span class="btn-label">&#9654; Fire Test</span>
+            </button>
+          </div>
+          <div class="test-card-body">
+            <button class="payload-toggle" onclick="togglePayload(this)">
+              <span class="arrow">&#9654;</span> View Payload
+            </button>
+            <div class="payload-area" id="payload-proposal_created"></div>
+            <div class="response-area" id="response-proposal_created"></div>
+          </div>
+        </div>
+
+        <!-- PROPOSAL SIGNED -->
+        <div class="test-card">
+          <div class="test-card-header">
+            <div class="test-card-info">
+              <div class="test-card-icon signed">&#9998;</div>
+              <div>
+                <div class="test-card-title">Proposal Signed</div>
+                <div class="test-card-event">proposal_signed</div>
+                <div class="test-card-desc">Fires when a client signs the proposal on the proposal page.</div>
+              </div>
+            </div>
+            <button class="test-btn fire" onclick="fireTest('proposal_signed')" id="btn-proposal_signed">
+              <span class="spinner"></span>
+              <span class="btn-label">&#9654; Fire Test</span>
+            </button>
+          </div>
+          <div class="test-card-body">
+            <button class="payload-toggle" onclick="togglePayload(this)">
+              <span class="arrow">&#9654;</span> View Payload
+            </button>
+            <div class="payload-area" id="payload-proposal_signed"></div>
+            <div class="response-area" id="response-proposal_signed"></div>
+          </div>
+        </div>
+
+        <!-- PROPOSAL PAID -->
+        <div class="test-card">
+          <div class="test-card-header">
+            <div class="test-card-info">
+              <div class="test-card-icon paid">&#128176;</div>
+              <div>
+                <div class="test-card-title">Proposal Paid</div>
+                <div class="test-card-event">proposal_paid</div>
+                <div class="test-card-desc">Fires when a client completes payment via Stripe checkout.</div>
+              </div>
+            </div>
+            <button class="test-btn fire" onclick="fireTest('proposal_paid')" id="btn-proposal_paid">
+              <span class="spinner"></span>
+              <span class="btn-label">&#9654; Fire Test</span>
+            </button>
+          </div>
+          <div class="test-card-body">
+            <button class="payload-toggle" onclick="togglePayload(this)">
+              <span class="arrow">&#9654;</span> View Payload
+            </button>
+            <div class="payload-area" id="payload-proposal_paid"></div>
+            <div class="response-area" id="response-proposal_paid"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Activity Log -->
+      <h3 style="font-size:0.8125rem;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:12px;">Activity Log</h3>
+      <div class="log-container" id="activityLog">
+        <div class="log-empty">No webhook tests fired yet. Click a "Fire Test" button above.</div>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- TAB 2: API ENDPOINTS                        -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="dev-section" id="tab-endpoints">
+
+      <div class="doc-section">
+        <h2>Page Routes</h2>
+        <p>These are the browser-accessible pages in the system.</p>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Method</th><th>URL</th><th>Auth</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="method method-get">GET</span></td>
+              <td><code>/login</code></td>
+              <td><span class="doc-badge badge-public">Public</span></td>
+              <td>Login page. Redirects to <code>/</code> if already logged in.</td>
+            </tr>
+            <tr>
+              <td><span class="method method-post">POST</span></td>
+              <td><code>/login</code></td>
+              <td><span class="doc-badge badge-public">Public</span></td>
+              <td>Submit login credentials. Sets session cookie and redirects to <code>/</code>.</td>
+            </tr>
+            <tr>
+              <td><span class="method method-get">GET</span></td>
+              <td><code>/logout</code></td>
+              <td><span class="doc-badge badge-public">Public</span></td>
+              <td>Clears session and redirects to <code>/login</code>.</td>
+            </tr>
+            <tr>
+              <td><span class="method method-get">GET</span></td>
+              <td><code>/</code></td>
+              <td><span class="doc-badge badge-auth">Login</span></td>
+              <td><strong>Dashboard</strong> — Lists all proposals with status, search, filter, edit, delete, and PDF download.</td>
+            </tr>
+            <tr>
+              <td><span class="method method-get">GET</span></td>
+              <td><code>/builder</code></td>
+              <td><span class="doc-badge badge-auth">Login</span></td>
+              <td><strong>Builder</strong> — Create a new proposal.</td>
+            </tr>
+            <tr>
+              <td><span class="method method-get">GET</span></td>
+              <td><code>/builder/:slug</code></td>
+              <td><span class="doc-badge badge-auth">Login</span></td>
+              <td><strong>Builder (edit)</strong> — Opens builder pre-filled with existing proposal data.</td>
+            </tr>
+            <tr>
+              <td><span class="method method-get">GET</span></td>
+              <td><code>/dev</code></td>
+              <td><span class="doc-badge badge-auth">Login</span></td>
+              <td><strong>Dev Console</strong> — This page. Webhook testing and API documentation.</td>
+            </tr>
+            <tr>
+              <td><span class="method method-get">GET</span></td>
+              <td><code>/:slug</code></td>
+              <td><span class="doc-badge badge-public">Public</span></td>
+              <td><strong>Client Proposal</strong> — Public page where clients view, sign, and pay.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="doc-section">
+        <h2>Proposals CRUD</h2>
+
+        <h3>POST /api/proposals</h3>
+        <p>Create or update a proposal. If the slug already exists, it updates the proposal while preserving existing signature and payment data. Triggers <code>proposal_created</code> or <code>proposal_updated</code> webhook.</p>
+        <table class="doc-table">
+          <thead><tr><th>Field</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>Auth</td><td><span class="doc-badge badge-public">Public</span> (optionally protected with <code>API_KEY</code> env var)</td></tr>
+            <tr><td>Content-Type</td><td><code>application/json</code></td></tr>
+            <tr><td>Required Fields</td><td><code>slug</code></td></tr>
+          </tbody>
+        </table>
+        <pre class="doc-code">POST /api/proposals
+Content-Type: application/json
+
+{
+  "slug": "brightside-dental-2026",
+  "proposal_id": "FT26P01",
+  "client": {
+    "name": "Sarah Mitchell",
+    "company": "Brightside Dental",
+    "email": "sarah@brightsidedental.com",
+    "phone": "+1 555-123-4567"
+  },
+  "project": { "name": "AI Front Office Automation" },
+  "pricing": {
+    "currency": "usd",
+    "due_now_cents": 50000,
+    "total_setup_cents": 50000,
+    "total_monthly_cents": 9700,
+    "items": [...]
+  }
+}
+
+// Response:
+{
+  "success": true,
+  "slug": "brightside-dental-2026",
+  "url": "https://proposals.flowtier.io/brightside-dental-2026",
+  "message": "Proposal created at /brightside-dental-2026"
+}</pre>
+
+        <h3>GET /api/proposals</h3>
+        <p>List all proposals. Returns an array with summary data (slug, client, status, dates, amounts). Used by the dashboard.</p>
+        <pre class="doc-code">GET /api/proposals
+
+// Response:
+{
+  "proposals": [
+    {
+      "slug": "brightside-dental-2026",
+      "proposal_id": "FT26P01",
+      "client_name": "Sarah Mitchell",
+      "client_company": "Brightside Dental",
+      "status": "pending",
+      "due_now_cents": 50000,
+      "currency": "usd",
+      "url": "/brightside-dental-2026"
+    }
+  ]
+}</pre>
+
+        <h3>GET /api/proposals/:slug</h3>
+        <p>Get a single proposal's full JSON data. Used by the proposal page to render content.</p>
+
+        <h3>DELETE /api/proposals/:slug</h3>
+        <p>Delete a proposal permanently. Requires login authentication.</p>
+        <table class="doc-table">
+          <thead><tr><th>Field</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>Auth</td><td><span class="doc-badge badge-auth">Login Required</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="doc-section">
+        <h2>Import</h2>
+        <h3>POST /api/import</h3>
+        <p>Import a proposal from external JSON. Same as <code>/api/proposals</code> but auto-generates a slug if not provided. Useful for Make.com or any external system to create proposals programmatically.</p>
+      </div>
+
+      <div class="doc-section">
+        <h2>Signature</h2>
+        <h3>POST /api/proposals/:slug/sign</h3>
+        <p>Record client signature. Saves name, email, signature data (typed text or drawn base64 image), signature type, timestamp, and IP address. Updates proposal status to <code>signed</code>. Triggers <code>proposal_signed</code> webhook.</p>
+        <pre class="doc-code">POST /api/proposals/brightside-dental-2026/sign
+Content-Type: application/json
+
+{
+  "name": "Sarah Mitchell",
+  "email": "sarah@brightsidedental.com",
+  "signature_data": "Sarah Mitchell",
+  "signature_type": "typed"
+}</pre>
+      </div>
+
+      <div class="doc-section">
+        <h2>Stripe Payment</h2>
+
+        <h3>GET /api/stripe-config</h3>
+        <p>Returns the Stripe publishable key for the frontend checkout integration.</p>
+
+        <h3>POST /api/proposals/:slug/checkout</h3>
+        <p>Create a Stripe Checkout Session. Charges the <code>due_now_cents</code> amount from the stored proposal. Returns a Stripe checkout URL to redirect the client.</p>
+        <pre class="doc-code">POST /api/proposals/brightside-dental-2026/checkout
+
+// Response:
+{
+  "sessionId": "cs_live_...",
+  "url": "https://checkout.stripe.com/c/pay/cs_live_..."
+}</pre>
+
+        <h3>POST /api/proposals/:slug/verify-payment</h3>
+        <p>Verify payment after Stripe redirect. Called automatically when the client returns with <code>?payment=success&amp;session_id=...</code>. Saves payment data and triggers <code>proposal_paid</code> webhook.</p>
+      </div>
+
+      <div class="doc-section">
+        <h2>Webhook Configuration</h2>
+        <h3>GET /api/webhook-config</h3>
+        <p>Returns the currently saved Make.com webhook URL. Requires login.</p>
+        <h3>POST /api/webhook-config</h3>
+        <p>Saves a new webhook URL. Persisted on disk. Requires login.</p>
+        <pre class="doc-code">POST /api/webhook-config
+Content-Type: application/json
+
+{ "url": "https://hook.us1.make.com/your-webhook-id" }</pre>
+      </div>
+
+      <div class="doc-section">
+        <h2>Terms &amp; Conditions</h2>
+        <h3>GET /api/terms</h3>
+        <p>Returns the current terms template with <code>{{company_name}}</code> and <code>{{date}}</code> placeholders. Public endpoint.</p>
+        <h3>POST /api/terms</h3>
+        <p>Updates the terms template. Requires login. Persisted on disk.</p>
+      </div>
+
+      <div class="doc-section">
+        <h2>Proposal ID Generator</h2>
+        <h3>GET /api/generate-id</h3>
+        <p>Generates the next proposal ID in format <code>FT26P01</code>, <code>FT26P02</code>, etc. Increments the counter. Resets to 01 each new year. Requires login.</p>
+        <h3>GET /api/next-id</h3>
+        <p>Peeks at the next ID without incrementing. Useful for preview. Requires login.</p>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- TAB 3: WEBHOOK PAYLOADS                     -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="dev-section" id="tab-webhooks">
+
+      <div class="doc-section">
+        <h2>Outgoing Webhook Notifications</h2>
+        <p>These are the notifications your system sends to the configured Make.com webhook URL. All events go to the same URL. Differentiate them using the <code>event</code> field in the body or the <code>X-Event-Type</code> header.</p>
+
+        <div class="doc-note">
+          <strong>Headers sent with every webhook:</strong><br>
+          <code>Content-Type: application/json</code><br>
+          <code>X-Source: flowtier-proposal-system</code><br>
+          <code>X-Event-Type: proposal_created | proposal_signed | proposal_paid | proposal_updated</code>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h3>proposal_created</h3>
+        <p>Triggered when you click "Save &amp; Send" in the builder to create a new proposal. Use in Make.com to send the proposal URL to the client via email, SMS, or WhatsApp.</p>
+        <pre class="doc-code">{
+  "event": "proposal_created",
+  "timestamp": "2026-02-25T15:30:00.000Z",
+  "proposal_url": "https://proposals.flowtier.io/brightside-dental-2026",
+  "slug": "brightside-dental-2026",
+  "proposal_id": "FT26P01",
+  "client": {
+    "name": "Sarah Mitchell",
+    "company": "Brightside Dental",
+    "email": "sarah@brightsidedental.com",
+    "phone": "+1 555-123-4567"
+  },
+  "project_name": "AI Front Office Automation",
+  "pricing": {
+    "currency": "usd",
+    "due_now_cents": 50000,
+    "total_setup_cents": 50000,
+    "total_monthly_cents": 9700
+  },
+  "created_date": "2026-02-25T15:30:00.000Z"
+}</pre>
+      </div>
+
+      <div class="doc-section">
+        <h3>proposal_updated</h3>
+        <p>Triggered when you edit and re-save an existing proposal (same slug). Same payload structure as <code>proposal_created</code> but with <code>"event": "proposal_updated"</code>.</p>
+      </div>
+
+      <div class="doc-section">
+        <h3>proposal_signed</h3>
+        <p>Triggered when a client signs the proposal. Use in Make.com to notify yourself (Slack, email), update your CRM, or trigger an onboarding workflow.</p>
+        <pre class="doc-code">{
+  "event": "proposal_signed",
+  "timestamp": "2026-02-26T10:15:00.000Z",
+  "proposal_url": "https://proposals.flowtier.io/brightside-dental-2026",
+  "slug": "brightside-dental-2026",
+  "proposal_id": "FT26P01",
+  "client": {
+    "name": "Sarah Mitchell",
+    "company": "Brightside Dental",
+    "email": "sarah@brightsidedental.com",
+    "phone": "+1 555-123-4567"
+  },
+  "signature": {
+    "name": "Sarah Mitchell",
+    "email": "sarah@brightsidedental.com",
+    "signature_data": "Sarah Mitchell",
+    "signature_type": "typed",
+    "signed_at": "2026-02-26T10:15:00.000Z",
+    "ip": "203.0.113.42"
+  },
+  "project_name": "AI Front Office Automation"
+}</pre>
+      </div>
+
+      <div class="doc-section">
+        <h3>proposal_paid</h3>
+        <p>Triggered when a client completes payment via Stripe. Use in Make.com to send payment confirmation, create an invoice, or trigger project kickoff.</p>
+        <pre class="doc-code">{
+  "event": "proposal_paid",
+  "timestamp": "2026-02-26T10:20:00.000Z",
+  "proposal_url": "https://proposals.flowtier.io/brightside-dental-2026",
+  "slug": "brightside-dental-2026",
+  "proposal_id": "FT26P01",
+  "client": {
+    "name": "Sarah Mitchell",
+    "company": "Brightside Dental",
+    "email": "sarah@brightsidedental.com",
+    "phone": "+1 555-123-4567"
+  },
+  "payment": {
+    "stripe_session_id": "cs_test_abc123",
+    "stripe_payment_intent": "pi_test_xyz789",
+    "amount_cents": 50000,
+    "currency": "usd",
+    "status": "paid",
+    "customer_email": "sarah@brightsidedental.com",
+    "paid_at": "2026-02-26T10:20:00.000Z"
+  },
+  "project_name": "AI Front Office Automation"
+}</pre>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- TAB 4: CONFIGURATION                        -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="dev-section" id="tab-config">
+
+      <div class="doc-section">
+        <h2>Environment Variables</h2>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>PORT</code></td>
+              <td>No</td>
+              <td><code>3000</code></td>
+              <td>Server port</td>
+            </tr>
+            <tr>
+              <td><code>BUILDER_USER</code></td>
+              <td>No</td>
+              <td><code>tulio</code></td>
+              <td>Login username</td>
+            </tr>
+            <tr>
+              <td><code>BUILDER_PASS</code></td>
+              <td>No</td>
+              <td>***</td>
+              <td>Login password</td>
+            </tr>
+            <tr>
+              <td><code>STRIPE_SECRET_KEY</code></td>
+              <td>Yes (for payments)</td>
+              <td>—</td>
+              <td>Stripe secret key (<code>sk_live_...</code>)</td>
+            </tr>
+            <tr>
+              <td><code>STRIPE_PUBLISHABLE_KEY</code></td>
+              <td>Yes (for payments)</td>
+              <td>—</td>
+              <td>Stripe publishable key (<code>pk_live_...</code>)</td>
+            </tr>
+            <tr>
+              <td><code>API_KEY</code></td>
+              <td>No</td>
+              <td>—</td>
+              <td>Optional API key to protect <code>POST /api/proposals</code> and <code>/api/import</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="doc-section">
+        <h2>Data Storage</h2>
+        <p>All data is stored as JSON files on disk. No external database required.</p>
+        <table class="doc-table">
+          <thead>
+            <tr><th>Path</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>data/{slug}.json</code></td>
+              <td>Full proposal data (one file per proposal)</td>
+            </tr>
+            <tr>
+              <td><code>config/webhook.json</code></td>
+              <td>Saved Make.com webhook URL</td>
+            </tr>
+            <tr>
+              <td><code>config/terms.json</code></td>
+              <td>Saved terms &amp; conditions template</td>
+            </tr>
+            <tr>
+              <td><code>config/counter.json</code></td>
+              <td>Proposal ID counter (year + count)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="doc-section">
+        <h2>Webhook URL</h2>
+        <p>Configure the Make.com webhook URL that receives all event notifications.</p>
+        <div style="display:flex;gap:10px;margin-top:12px;">
+          <input type="text" id="configWebhookInput" placeholder="https://hook.us1.make.com/..." style="flex:1;padding:10px 14px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-sm);color:var(--color-text);font-family:var(--font-mono);font-size:0.8125rem;outline:none;">
+          <button class="test-btn fire" onclick="saveWebhookUrl()" id="saveWebhookBtn">
+            <span class="btn-label">Save</span>
+          </button>
+        </div>
+        <div id="webhookSaveStatus" style="font-size:0.75rem;margin-top:8px;color:var(--color-text-muted);"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // ════════════════════════════════════════════
+    // TEST PAYLOADS
+    // ════════════════════════════════════════════
+    const TEST_PAYLOADS = {
+      proposal_created: {
+        event: 'proposal_created',
+        timestamp: new Date().toISOString(),
+        proposal_url: 'https://proposals.flowtier.io/test-brightside-dental',
+        slug: 'test-brightside-dental',
+        proposal_id: 'FT26T01',
+        client: {
+          name: 'Sarah Mitchell',
+          company: 'Brightside Dental',
+          email: 'sarah@brightsidedental.com',
+          phone: '+1 555-123-4567'
+        },
+        project_name: 'AI Front Office Automation',
+        pricing: {
+          currency: 'usd',
+          due_now_cents: 50000,
+          total_setup_cents: 50000,
+          total_monthly_cents: 9700
+        },
+        created_date: new Date().toISOString()
+      },
+      proposal_signed: {
+        event: 'proposal_signed',
+        timestamp: new Date().toISOString(),
+        proposal_url: 'https://proposals.flowtier.io/test-brightside-dental',
+        slug: 'test-brightside-dental',
+        proposal_id: 'FT26T01',
+        client: {
+          name: 'Sarah Mitchell',
+          company: 'Brightside Dental',
+          email: 'sarah@brightsidedental.com',
+          phone: '+1 555-123-4567'
+        },
+        signature: {
+          name: 'Sarah Mitchell',
+          email: 'sarah@brightsidedental.com',
+          signature_data: 'Sarah Mitchell',
+          signature_type: 'typed',
+          signed_at: new Date().toISOString(),
+          ip: '203.0.113.42'
+        },
+        project_name: 'AI Front Office Automation'
+      },
+      proposal_paid: {
+        event: 'proposal_paid',
+        timestamp: new Date().toISOString(),
+        proposal_url: 'https://proposals.flowtier.io/test-brightside-dental',
+        slug: 'test-brightside-dental',
+        proposal_id: 'FT26T01',
+        client: {
+          name: 'Sarah Mitchell',
+          company: 'Brightside Dental',
+          email: 'sarah@brightsidedental.com',
+          phone: '+1 555-123-4567'
+        },
+        payment: {
+          stripe_session_id: 'cs_test_abc123xyz',
+          stripe_payment_intent: 'pi_test_xyz789abc',
+          amount_cents: 50000,
+          currency: 'usd',
+          status: 'paid',
+          customer_email: 'sarah@brightsidedental.com',
+          paid_at: new Date().toISOString()
+        },
+        project_name: 'AI Front Office Automation'
+      }
+    };
+
+    // ════════════════════════════════════════════
+    // INIT
+    // ════════════════════════════════════════════
+    let webhookUrl = '';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadWebhookStatus();
+      renderPayloads();
+    });
+
+    // ════════════════════════════════════════════
+    // TABS
+    // ════════════════════════════════════════════
+    document.querySelectorAll('.dev-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.dev-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.dev-section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ════════════════════════════════════════════
+    // WEBHOOK STATUS
+    // ════════════════════════════════════════════
+    async function loadWebhookStatus() {
+      try {
+        const res = await fetch('/api/webhook-config');
+        const data = await res.json();
+        webhookUrl = data.url || '';
+        updateWebhookUI();
+      } catch (e) {
+        document.getElementById('webhookStatusText').textContent = 'Error loading config';
+      }
+    }
+
+    function updateWebhookUI() {
+      const dot = document.getElementById('webhookDot');
+      const text = document.getElementById('webhookStatusText');
+      const display = document.getElementById('webhookUrlDisplay');
+      const input = document.getElementById('configWebhookInput');
+
+      if (webhookUrl) {
+        dot.classList.add('connected');
+        text.innerHTML = '<strong>Connected</strong>';
+        display.textContent = webhookUrl;
+      } else {
+        dot.classList.remove('connected');
+        text.innerHTML = '<strong>Not configured</strong> — Set your Make.com webhook URL in the Configuration tab.';
+        display.textContent = '';
+      }
+
+      if (input) input.value = webhookUrl;
+    }
+
+    // ════════════════════════════════════════════
+    // RENDER PAYLOADS
+    // ════════════════════════════════════════════
+    function renderPayloads() {
+      Object.keys(TEST_PAYLOADS).forEach(event => {
+        const el = document.getElementById('payload-' + event);
+        if (el) {
+          el.innerHTML = '<pre class="payload-code">' + syntaxHighlight(TEST_PAYLOADS[event]) + '</pre>';
+        }
+      });
+    }
+
+    function syntaxHighlight(obj) {
+      const json = JSON.stringify(obj, null, 2);
+      return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        let cls = 'number';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'key';
+            return '<span class="' + cls + '">' + escapeHtml(match) + '</span>';
+          } else {
+            cls = 'string';
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'string';
+        } else if (/null/.test(match)) {
+          cls = 'null';
+        }
+        return '<span class="' + cls + '">' + escapeHtml(match) + '</span>';
+      });
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ════════════════════════════════════════════
+    // TOGGLE PAYLOAD VIEW
+    // ════════════════════════════════════════════
+    function togglePayload(btn) {
+      btn.classList.toggle('open');
+      const area = btn.nextElementSibling;
+      area.classList.toggle('open');
+    }
+
+    // ════════════════════════════════════════════
+    // FIRE TEST WEBHOOK
+    // ════════════════════════════════════════════
+    async function fireTest(eventType) {
+      const btn = document.getElementById('btn-' + eventType);
+      const responseArea = document.getElementById('response-' + eventType);
+
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      // Update timestamp to now
+      const payload = { ...TEST_PAYLOADS[eventType], timestamp: new Date().toISOString() };
+      if (payload.created_date) payload.created_date = new Date().toISOString();
+      if (payload.signature && payload.signature.signed_at) payload.signature.signed_at = new Date().toISOString();
+      if (payload.payment && payload.payment.paid_at) payload.payment.paid_at = new Date().toISOString();
+
+      addLog('info', `Firing test: ${eventType}...`);
+
+      try {
+        const res = await fetch('/api/dev/test-webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event_type: eventType, payload: payload })
+        });
+
+        const data = await res.json();
+
+        responseArea.classList.add('visible');
+
+        if (data.success) {
+          responseArea.innerHTML = `
+            <div class="response-label">Response from Make.com</div>
+            <div class="response-box success">
+              <div class="response-status ok">&#10003; ${data.webhook_status || 200} OK</div>
+              <div>${escapeHtml(data.webhook_response || 'Accepted')}</div>
+            </div>
+          `;
+          addLog('success', `${eventType} — Webhook delivered successfully (${data.webhook_status || 200})`);
+        } else {
+          responseArea.innerHTML = `
+            <div class="response-label">Response</div>
+            <div class="response-box error">
+              <div class="response-status fail">&#10007; Error</div>
+              <div>${escapeHtml(data.error || 'Unknown error')}</div>
+            </div>
+          `;
+          addLog('error', `${eventType} — ${data.error || 'Failed'}`);
+        }
+      } catch (err) {
+        responseArea.classList.add('visible');
+        responseArea.innerHTML = `
+          <div class="response-label">Response</div>
+          <div class="response-box error">
+            <div class="response-status fail">&#10007; Network Error</div>
+            <div>${escapeHtml(err.message)}</div>
+          </div>
+        `;
+        addLog('error', `${eventType} — Network error: ${err.message}`);
+      }
+
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+
+    // ════════════════════════════════════════════
+    // ACTIVITY LOG
+    // ════════════════════════════════════════════
+    function addLog(type, message) {
+      const log = document.getElementById('activityLog');
+      const empty = log.querySelector('.log-empty');
+      if (empty) empty.remove();
+
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+      const entry = document.createElement('div');
+      entry.className = 'log-entry ' + type;
+      entry.innerHTML = `<span class="time">[${time}]</span> <span class="msg">${escapeHtml(message)}</span>`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // ════════════════════════════════════════════
+    // SAVE WEBHOOK URL
+    // ════════════════════════════════════════════
+    async function saveWebhookUrl() {
+      const input = document.getElementById('configWebhookInput');
+      const status = document.getElementById('webhookSaveStatus');
+      const url = input.value.trim();
+
+      try {
+        const res = await fetch('/api/webhook-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          webhookUrl = url;
+          updateWebhookUI();
+          status.style.color = '#00E676';
+          status.textContent = 'Webhook URL saved successfully.';
+          addLog('success', 'Webhook URL updated');
+        } else {
+          status.style.color = '#FF5252';
+          status.textContent = data.error || 'Failed to save.';
+        }
+      } catch (err) {
+        status.style.color = '#FF5252';
+        status.textContent = 'Network error: ' + err.message;
+      }
+
+      setTimeout(() => { status.textContent = ''; }, 4000);
+    }
+  </script>
+</body>
+</html>
