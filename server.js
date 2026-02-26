@@ -900,6 +900,41 @@ function getLoginPageHTML(error) {
 }
 
 // ============================================
+// CRM LEAD SEARCH PROXY
+// ============================================
+const CRM_BASE = process.env.CRM_BASE_URL || 'https://leads.flowtier.io';
+
+// Proxy search leads from the CRM (avoids CORS in production)
+app.get('/api/crm/leads/search', requireAuth, async (req, res) => {
+  try {
+    const q = req.query.q || '';
+    if (q.length < 2) return res.json({ leads: [] });
+    
+    const https = require('https');
+    const http = require('http');
+    const url = new URL(CRM_BASE + '/api/leads/search?q=' + encodeURIComponent(q));
+    const protocol = url.protocol === 'https:' ? https : http;
+    
+    const proxyReq = protocol.get(url.toString(), (proxyRes) => {
+      let data = '';
+      proxyRes.on('data', chunk => data += chunk);
+      proxyRes.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          res.json(parsed);
+        } catch (e) {
+          res.json({ leads: [] });
+        }
+      });
+    });
+    proxyReq.on('error', () => res.json({ leads: [] }));
+    proxyReq.setTimeout(5000, () => { proxyReq.destroy(); res.json({ leads: [] }); });
+  } catch (e) {
+    res.json({ leads: [] });
+  }
+});
+
+// ============================================
 // START SERVER
 // ============================================
 app.listen(PORT, '0.0.0.0', () => {

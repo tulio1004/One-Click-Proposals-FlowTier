@@ -118,8 +118,14 @@
 
       <!-- A) Client Information -->
       <div class="builder-section">
-        <div class="builder-section-title">
-          <span class="section-num">A</span> Client Information
+        <div class="builder-section-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <div><span class="section-num">A</span> Client Information</div>
+          <button class="btn btn-secondary btn-sm" onclick="openImportLeadModal()" style="font-size:0.75rem;padding:6px 14px;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:0.875rem;">&#128101;</span> Import Lead
+          </button>
+        </div>
+        <div id="leadLinkedBanner" style="display:none;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.8125rem;color:#00E676;display:flex;align-items:center;gap:8px;">
+          <span>&#9989;</span> <span id="leadLinkedText">Linked to lead</span>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -140,6 +146,23 @@
             <label for="clientPhone">Phone</label>
             <input type="tel" id="clientPhone" placeholder="+1 (555) 123-4567">
           </div>
+        </div>
+      </div>
+
+      <!-- Import Lead Modal -->
+      <div id="importLeadModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;">
+        <div style="background:var(--color-bg-elevated,#111b27);border:1px solid var(--color-border,#2a3a4a);border-radius:12px;width:520px;max-height:80vh;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+          <div style="padding:20px 24px;border-bottom:1px solid var(--color-border-light,#1e2d3d);display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <h3 style="font-size:1rem;font-weight:700;color:var(--color-text,#e0e0e0);margin:0;">Import Lead from CRM</h3>
+              <p style="font-size:0.75rem;color:var(--color-text-muted,#6b7a8d);margin:4px 0 0;">Search by name, company, or email</p>
+            </div>
+            <button onclick="closeImportLeadModal()" style="background:none;border:none;color:var(--color-text-muted,#6b7a8d);font-size:1.25rem;cursor:pointer;padding:4px 8px;">&#10005;</button>
+          </div>
+          <div style="padding:16px 24px;">
+            <input type="text" id="leadSearchInput" placeholder="Search leads..." oninput="searchLeads()" style="width:100%;padding:10px 14px;background:var(--color-surface,#0d1520);border:1px solid var(--color-border,#2a3a4a);border-radius:8px;color:var(--color-text,#e0e0e0);font-size:0.875rem;font-family:inherit;outline:none;box-sizing:border-box;">
+          </div>
+          <div id="leadSearchResults" style="padding:0 24px 20px;max-height:400px;overflow-y:auto;"></div>
         </div>
       </div>
 

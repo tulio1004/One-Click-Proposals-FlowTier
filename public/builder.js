@@ -335,6 +335,7 @@
 
     // Pre-fill from URL query parameters (e.g., from Lead Manager CRM)
     prefillFromQueryParams();
+    showLinkedBannerIfNeeded();
 
     schedulePreviewUpdate();
 
@@ -1332,6 +1333,127 @@
     iframe.addEventListener('load', function () {
       setTimeout(updatePreview, 300);
     });
+  }
+
+  // ============================================
+  // IMPORT LEAD FROM CRM
+  // ============================================
+  var _searchTimeout = null;
+
+  window.openImportLeadModal = function () {
+    var modal = document.getElementById('importLeadModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      var input = document.getElementById('leadSearchInput');
+      if (input) { input.value = ''; input.focus(); }
+      document.getElementById('leadSearchResults').innerHTML = '<p style="color:var(--color-text-muted,#6b7a8d);font-size:0.8125rem;text-align:center;padding:20px 0;">Type at least 2 characters to search leads from your CRM</p>';
+    }
+  };
+
+  window.closeImportLeadModal = function () {
+    var modal = document.getElementById('importLeadModal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  // Close modal on backdrop click
+  document.addEventListener('click', function (e) {
+    var modal = document.getElementById('importLeadModal');
+    if (e.target === modal) window.closeImportLeadModal();
+  });
+
+  window.searchLeads = function () {
+    clearTimeout(_searchTimeout);
+    var q = (document.getElementById('leadSearchInput').value || '').trim();
+    var resultsEl = document.getElementById('leadSearchResults');
+
+    if (q.length < 2) {
+      resultsEl.innerHTML = '<p style="color:var(--color-text-muted,#6b7a8d);font-size:0.8125rem;text-align:center;padding:20px 0;">Type at least 2 characters to search</p>';
+      return;
+    }
+
+    resultsEl.innerHTML = '<p style="color:var(--color-text-muted,#6b7a8d);font-size:0.8125rem;text-align:center;padding:20px 0;">Searching...</p>';
+
+    _searchTimeout = setTimeout(function () {
+      fetch('/api/crm/leads/search?q=' + encodeURIComponent(q))
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var leads = data.leads || [];
+          if (leads.length === 0) {
+            resultsEl.innerHTML = '<p style="color:var(--color-text-muted,#6b7a8d);font-size:0.8125rem;text-align:center;padding:20px 0;">No leads found matching "' + escapeHtml(q) + '"</p>';
+            return;
+          }
+
+          var html = '';
+          leads.forEach(function (lead, idx) {
+            html += '<div class="lead-result-item" data-idx="' + idx + '" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--color-border-light,#1e2d3d);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:all 0.15s ease;">' 
+              + '<div>'
+              + '<div style="font-size:0.875rem;font-weight:600;color:var(--color-text,#e0e0e0);">' + escapeHtml(lead.contact_name || 'No Name') + '</div>'
+              + '<div style="font-size:0.75rem;color:var(--color-text-muted,#6b7a8d);margin-top:2px;">' + escapeHtml(lead.company_name || '') + (lead.industry ? ' &middot; ' + escapeHtml(lead.industry) : '') + '</div>'
+              + '<div style="font-size:0.6875rem;color:var(--color-text-muted,#6b7a8d);margin-top:2px;font-family:var(--font-mono,monospace);">' + escapeHtml(lead.email || '') + '</div>'
+              + '</div>'
+              + '<div style="padding:4px 12px;background:rgba(0,230,118,0.1);color:#00E676;border-radius:4px;font-size:0.6875rem;font-weight:600;text-transform:uppercase;">' + escapeHtml(lead.stage || 'cold') + '</div>'
+              + '</div>';
+          });
+          resultsEl.innerHTML = html;
+
+          // Attach click and hover handlers via JS (avoids inline escaping issues)
+          resultsEl.querySelectorAll('.lead-result-item').forEach(function (el) {
+            var i = parseInt(el.getAttribute('data-idx'));
+            var ld = leads[i];
+            el.addEventListener('mouseenter', function () { el.style.borderColor = 'rgba(0,230,118,0.4)'; el.style.background = 'rgba(0,230,118,0.04)'; });
+            el.addEventListener('mouseleave', function () { el.style.borderColor = ''; el.style.background = ''; });
+            el.addEventListener('click', function () { selectLead(ld.lead_id, ld.contact_name, ld.company_name, ld.email, ld.phone); });
+          });
+        })
+        .catch(function (err) {
+          resultsEl.innerHTML = '<p style="color:var(--color-danger,#FF5252);font-size:0.8125rem;text-align:center;padding:20px 0;">Error searching leads: ' + escapeHtml(err.message) + '</p>';
+        });
+    }, 300); // Debounce 300ms
+  };
+
+  window.selectLead = function (leadId, name, company, email, phone) {
+    // Store lead_id
+    _linkedLeadId = leadId;
+
+    // Fill form fields
+    if (name) document.getElementById('clientName').value = name;
+    if (company) document.getElementById('clientCompany').value = company;
+    if (email) document.getElementById('clientEmail').value = email;
+    if (phone) document.getElementById('clientPhone').value = phone;
+
+    // Trigger slug generation
+    var slugInput = document.getElementById('proposalSlug');
+    if (slugInput && company) {
+      slugInput.value = company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+
+    // Show linked banner
+    var banner = document.getElementById('leadLinkedBanner');
+    if (banner) {
+      banner.style.display = 'flex';
+      var bannerText = document.getElementById('leadLinkedText');
+      if (bannerText) bannerText.textContent = 'Linked to: ' + (name || company || leadId);
+    }
+
+    // Close modal and show toast
+    window.closeImportLeadModal();
+    showToast('Lead imported: ' + (name || company));
+
+    // Update preview
+    schedulePreviewUpdate();
+  };
+
+  // Show linked banner on prefill too
+  function showLinkedBannerIfNeeded() {
+    if (_linkedLeadId) {
+      var banner = document.getElementById('leadLinkedBanner');
+      if (banner) {
+        banner.style.display = 'flex';
+        var name = document.getElementById('clientName').value || document.getElementById('clientCompany').value || _linkedLeadId;
+        var bannerText = document.getElementById('leadLinkedText');
+        if (bannerText) bannerText.textContent = 'Linked to: ' + name;
+      }
+    }
   }
 
   // ============================================
