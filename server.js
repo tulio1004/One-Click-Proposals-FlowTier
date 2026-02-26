@@ -436,6 +436,7 @@ app.post('/api/proposals', (req, res) => {
       proposal_url: proposalUrl,
       slug: slug,
       proposal_id: data.proposal_id || '',
+      lead_id: data.lead_id || '',
       client: {
         name: (data.client && data.client.name) || '',
         company: (data.client && data.client.company) || '',
@@ -681,6 +682,7 @@ app.post('/api/proposals/:slug/sign', async (req, res) => {
       proposal_url: proposalUrl,
       slug: slug,
       proposal_id: data.proposal_id || '',
+      lead_id: data.lead_id || '',
       client: {
         name: (data.client && data.client.name) || '',
         company: (data.client && data.client.company) || '',

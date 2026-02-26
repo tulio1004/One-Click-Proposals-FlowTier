@@ -265,9 +265,18 @@
   // ============================================
   // PRE-FILL FROM URL QUERY PARAMETERS
   // ============================================
+  // Store lead_id from CRM (hidden, not exposed to client)
+  var _linkedLeadId = '';
+
   function prefillFromQueryParams() {
     var params = new URLSearchParams(window.location.search);
     if (params.toString().length === 0) return;
+
+    // Capture lead_id if provided (from Lead Manager CRM)
+    if (params.has('lead_id')) {
+      _linkedLeadId = params.get('lead_id');
+      console.log('[FlowTier] Linked to lead:', _linkedLeadId);
+    }
 
     // Map query param names to form field IDs
     var fieldMap = {
@@ -288,6 +297,11 @@
           filled = true;
         }
       }
+    }
+
+    // If no lead_id from URL, try to match by email on blur
+    if (!_linkedLeadId) {
+      setupEmailLookup();
     }
 
     // Trigger slug generation if company was pre-filled
@@ -366,6 +380,61 @@
       opt.textContent = sys.name;
       select.appendChild(opt);
     });
+  }
+
+  // ============================================
+  // EMAIL-BASED LEAD LOOKUP (cross-origin to Lead Manager CRM)
+  // ============================================
+  var _lookupTimeout = null;
+  var CRM_BASE = 'https://leads.flowtier.io';
+
+  function setupEmailLookup() {
+    var emailInput = document.getElementById('clientEmail');
+    if (!emailInput) return;
+
+    emailInput.addEventListener('blur', function () {
+      var email = emailInput.value.trim().toLowerCase();
+      if (!email || !email.includes('@') || _linkedLeadId) return;
+      lookupLeadByEmail(email);
+    });
+
+    // Also trigger on a short delay after typing stops
+    emailInput.addEventListener('input', function () {
+      clearTimeout(_lookupTimeout);
+      var email = emailInput.value.trim().toLowerCase();
+      if (!email || !email.includes('@') || _linkedLeadId) return;
+      _lookupTimeout = setTimeout(function () {
+        lookupLeadByEmail(email);
+      }, 1500);
+    });
+  }
+
+  function lookupLeadByEmail(email) {
+    fetch(CRM_BASE + '/api/leads/lookup?email=' + encodeURIComponent(email))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.found && data.lead_id) {
+          _linkedLeadId = data.lead_id;
+          console.log('[FlowTier] Auto-matched lead:', data.lead_id, data.contact_name, data.company_name);
+          showToast('Linked to lead: ' + (data.contact_name || data.company_name || data.lead_id));
+
+          // Auto-fill name/company if empty
+          var nameInput = document.getElementById('clientName');
+          var companyInput = document.getElementById('clientCompany');
+          if (nameInput && !nameInput.value && data.contact_name) {
+            nameInput.value = data.contact_name;
+            nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          if (companyInput && !companyInput.value && data.company_name) {
+            companyInput.value = data.company_name;
+            companyInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+      })
+      .catch(function (err) {
+        // Silently fail — CRM might not be reachable
+        console.log('[FlowTier] Lead lookup failed (CRM unreachable):', err.message);
+      });
   }
 
   // ============================================
@@ -874,6 +943,7 @@
       proposal_id: document.getElementById('proposalId').value,
       slug: document.getElementById('proposalSlug').value,
       created_date: document.getElementById('proposalDate').value || new Date().toISOString().split('T')[0],
+      lead_id: _linkedLeadId || '',
       client: {
         name: document.getElementById('clientName').value,
         company: document.getElementById('clientCompany').value,
@@ -1036,6 +1106,8 @@
     document.getElementById('projectName').value = (data.project && data.project.name) || '';
     document.getElementById('proposalId').value = data.proposal_id || '';
     document.getElementById('proposalSlug').value = data.slug || '';
+    // Restore linked lead_id if present
+    if (data.lead_id) _linkedLeadId = data.lead_id;
     document.getElementById('proposalDate').value = data.created_date ? data.created_date.split('T')[0] : '';
 
     // Problem & Solution (Quill editors)
