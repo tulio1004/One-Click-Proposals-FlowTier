@@ -263,6 +263,44 @@
   }
 
   // ============================================
+  // PRE-FILL FROM URL QUERY PARAMETERS
+  // ============================================
+  function prefillFromQueryParams() {
+    var params = new URLSearchParams(window.location.search);
+    if (params.toString().length === 0) return;
+
+    // Map query param names to form field IDs
+    var fieldMap = {
+      'client_name': 'clientName',
+      'company_name': 'clientCompany',
+      'client_email': 'clientEmail',
+      'client_phone': 'clientPhone',
+      'client_address': null, // no field for this yet, but capture it
+      'project_name': 'projectName'
+    };
+
+    var filled = false;
+    for (var key in fieldMap) {
+      if (params.has(key) && fieldMap[key]) {
+        var el = document.getElementById(fieldMap[key]);
+        if (el && !el.value) {
+          el.value = params.get(key);
+          filled = true;
+        }
+      }
+    }
+
+    // Trigger slug generation if company was pre-filled
+    if (filled) {
+      var companyInput = document.getElementById('clientCompany');
+      if (companyInput && companyInput.value) {
+        companyInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      schedulePreviewUpdate();
+    }
+  }
+
+  // ============================================
   // INITIALIZATION
   // ============================================
   function init() {
@@ -280,6 +318,9 @@
 
     // Load terms after Quill is initialized
     loadTermsTemplate();
+
+    // Pre-fill from URL query parameters (e.g., from Lead Manager CRM)
+    prefillFromQueryParams();
 
     schedulePreviewUpdate();
 
