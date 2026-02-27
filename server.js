@@ -905,7 +905,7 @@ function getLoginPageHTML(error) {
 const CRM_BASE = process.env.CRM_BASE_URL || 'https://leads.flowtier.io';
 
 // Proxy search leads from the CRM (avoids CORS in production)
-app.get('/api/crm/leads/search', requireAuth, async (req, res) => {
+app.get('/api/crm/leads/search', requireBuilderAuth, async (req, res) => {
   try {
     const q = req.query.q || '';
     if (q.length < 2) return res.json({ leads: [] });
