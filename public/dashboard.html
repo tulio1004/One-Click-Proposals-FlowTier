@@ -72,11 +72,12 @@
             <th>Date</th>
             <th>Due Now</th>
             <th>Status</th>
+            <th>Client Views</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="proposalsBody">
-          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--color-text-muted);">Loading proposals...</td></tr>
+          <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--color-text-muted);">Loading proposals...</td></tr>
         </tbody>
       </table>
     </div>
@@ -109,13 +110,33 @@
       return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
+    function formatViews(p) {
+      if (!p.view_count || p.view_count === 0) {
+        return '<span style="color:var(--color-text-muted);font-size:0.8rem;">Not viewed</span>';
+      }
+      var viewText = p.view_count + (p.view_count === 1 ? ' view' : ' views');
+      var lastView = p.last_viewed_at ? formatDate(p.last_viewed_at) : '';
+      var timeAgo = '';
+      if (p.last_viewed_at) {
+        var diff = Date.now() - new Date(p.last_viewed_at).getTime();
+        var mins = Math.floor(diff / 60000);
+        if (mins < 60) timeAgo = mins + 'm ago';
+        else if (mins < 1440) timeAgo = Math.floor(mins / 60) + 'h ago';
+        else timeAgo = Math.floor(mins / 1440) + 'd ago';
+      }
+      return '<span style="font-weight:600;color:var(--color-primary);">' + viewText + '</span>' +
+        (timeAgo ? '<br><span style="font-size:0.7rem;color:var(--color-text-muted);">Last: ' + timeAgo + '</span>' : '');
+    }
+
     function getStatusBadge(status) {
       var classes = {
+        'draft': 'status-badge status-pending',
         'pending': 'status-badge status-pending',
         'signed': 'status-badge status-signed',
         'paid': 'status-badge status-paid'
       };
       var labels = {
+        'draft': 'Draft',
         'pending': 'Pending',
         'signed': 'Signed',
         'paid': 'Paid'
@@ -178,7 +199,7 @@
       empty.style.display = 'none';
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--color-text-muted);">No proposals match your filter.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--color-text-muted);">No proposals match your filter.</td></tr>';
         return;
       }
 
@@ -194,7 +215,9 @@
         html += '<td>' + escapeHtml(p.project_name || '—') + '</td>';
         html += '<td>' + formatDate(p.created_date) + '</td>';
         html += '<td>' + (p.due_now_cents > 0 ? formatCurrency(p.due_now_cents, p.currency) : '—') + '</td>';
-        html += '<td>' + getStatusBadge(p.status) + '</td>';        html += '<td class="actions-cell">';
+        html += '<td>' + getStatusBadge(p.status) + '</td>';
+        html += '<td>' + formatViews(p) + '</td>';
+        html += '<td class="actions-cell">';
         html += '<a href="/' + encodeURIComponent(p.slug) + '" target="_blank" class="action-btn action-view" title="View Proposal">&#128065;</a>';
         html += '<a href="/builder/' + encodeURIComponent(p.slug) + '" class="action-btn action-edit" title="Edit Proposal">&#9998;</a>';
         if (p.status === 'signed' || p.status === 'paid') {

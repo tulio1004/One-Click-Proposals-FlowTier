@@ -1220,7 +1220,59 @@
   };
 
   // ============================================
-  // CREATE PROPOSAL — Save + Send URL to webhook
+  // SAVE DRAFT — Save without webhook or stage change
+  // ============================================
+  window.saveDraft = function () {
+    var data = buildJSON();
+
+    if (!data.slug) {
+      alert('Please enter a client name or company to generate a slug.');
+      return;
+    }
+    if (!data.client.name && !data.client.company) {
+      alert('Please fill in at least the client name or company.');
+      return;
+    }
+
+    var statusPanel = document.getElementById('createStatus');
+    var statusText = document.getElementById('createStatusText');
+    var responseEl = document.getElementById('createResponse');
+
+    statusPanel.style.display = 'block';
+    statusText.innerHTML = '<span class="badge badge-warning">Saving draft...</span>';
+    responseEl.textContent = '';
+
+    fetch('/api/proposals?draft=1', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Source': 'flowtier-proposal-builder'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(function (response) {
+      return response.json().then(function (result) {
+        return { ok: response.ok, status: response.status, result: result };
+      });
+    })
+    .then(function (res) {
+      var now = new Date().toLocaleString();
+      if (res.ok && res.result.success) {
+        statusText.innerHTML = '<span class="badge badge-success">Draft Saved!</span> <span style="color:var(--color-text-muted);font-size:0.75rem;">' + now + '</span>';
+        responseEl.textContent = 'URL: ' + res.result.url + '\n\nDraft saved. No webhook fired. You can continue editing and send when ready.';
+      } else {
+        statusText.innerHTML = '<span class="badge badge-danger">Error (' + res.status + ')</span>';
+        responseEl.textContent = res.result.error || 'Unknown error';
+      }
+    })
+    .catch(function (err) {
+      statusText.innerHTML = '<span class="badge badge-danger">Failed</span>';
+      responseEl.textContent = err.message;
+    });
+  };
+
+  // ============================================
+  // SEND PROPOSAL — Save + Send URL to webhook + update lead stage
   // ============================================
   window.createProposal = function () {
     var data = buildJSON();

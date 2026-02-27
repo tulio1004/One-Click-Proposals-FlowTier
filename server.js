@@ -181,11 +181,11 @@ function buildPricingPayload(data) {
   };
 }
 
+// CRM LEAD PATCH HELPER (reusable for all lead updates)
 // ============================================
-// AUTO-ATTACH PROPOSAL TO LEAD IN CRM
-// ============================================
-async function linkProposalToLead(leadId, proposalUrl, projectName, clientName) {
+async function patchLeadInCRM(leadId, patchBody, label) {
   if (!leadId) return;
+  const tag = label || 'CRM Patch';
 
   try {
     const http = require('http');
@@ -193,10 +193,7 @@ async function linkProposalToLead(leadId, proposalUrl, projectName, clientName) 
     const url = new URL(`${CRM_BASE}/api/leads/${leadId}`);
     const protocol = url.protocol === 'https:' ? https : http;
 
-    const patchData = JSON.stringify({
-      proposal_url: proposalUrl,
-      stage: 'proposal_sent'
-    });
+    const patchData = JSON.stringify(patchBody);
 
     const options = {
       hostname: url.hostname,
@@ -215,12 +212,12 @@ async function linkProposalToLead(leadId, proposalUrl, projectName, clientName) 
         let body = '';
         res.on('data', chunk => body += chunk);
         res.on('end', () => {
-          console.log(`[CRM Link] Attached proposal to lead ${leadId}: ${res.statusCode}`);
+          console.log(`[${tag}] Lead ${leadId}: ${res.statusCode}`);
           resolve(body);
         });
       });
       req.on('error', (err) => {
-        console.error(`[CRM Link] Failed to attach proposal to lead ${leadId}:`, err.message);
+        console.error(`[${tag}] Failed for lead ${leadId}:`, err.message);
         reject(err);
       });
       req.setTimeout(5000, () => { req.destroy(); reject(new Error('Timeout')); });
@@ -228,8 +225,19 @@ async function linkProposalToLead(leadId, proposalUrl, projectName, clientName) 
       req.end();
     });
   } catch (err) {
-    console.error(`[CRM Link] Error linking proposal to lead ${leadId}:`, err.message);
+    console.error(`[${tag}] Error for lead ${leadId}:`, err.message);
   }
+}
+
+// Convenience wrappers
+async function linkProposalToLead(leadId, proposalUrl) {
+  return patchLeadInCRM(leadId, { proposal_url: proposalUrl, stage: 'proposal_sent' }, 'CRM Link');
+}
+async function linkProposalToLeadDraft(leadId, proposalUrl) {
+  return patchLeadInCRM(leadId, { proposal_url: proposalUrl }, 'CRM Draft');
+}
+async function updateLeadStageWon(leadId) {
+  return patchLeadInCRM(leadId, { stage: 'won' }, 'CRM Won');
 }
 
 // ============================================
@@ -507,38 +515,49 @@ app.post('/api/proposals', (req, res) => {
       isUpdate = true;
     }
 
-    if (!data.status) {
+    // Set status based on draft flag
+    const isDraftSave = req.query.draft === '1' || req.headers['x-draft'] === '1';
+    if (isDraftSave) {
+      data.status = data.status === 'signed' || data.status === 'paid' ? data.status : 'draft';
+    } else if (!data.status || data.status === 'draft') {
       data.status = 'pending';
     }
 
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
 
-    console.log(`[${new Date().toISOString()}] Proposal ${isUpdate ? 'updated' : 'saved'}: ${slug}`);
+    console.log(`[${new Date().toISOString()}] Proposal ${isDraftSave ? 'draft saved' : (isUpdate ? 'updated' : 'saved')}: ${slug}`);
 
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'proposals.flowtier.io';
     const proposalUrl = `${protocol}://${host}/${slug}`;
 
-    // Send webhook notification
-    sendWebhookNotification(isUpdate ? 'proposal_updated' : 'proposal_created', {
-      proposal_url: proposalUrl,
-      slug: slug,
-      proposal_id: data.proposal_id || '',
-      lead_id: data.lead_id || '',
-      client: {
-        name: (data.client && data.client.name) || '',
-        company: (data.client && data.client.company) || '',
-        email: (data.client && data.client.email) || '',
-        phone: (data.client && data.client.phone) || ''
-      },
-      project_name: (data.project && data.project.name) || '',
-      pricing: buildPricingPayload(data),
-      created_date: data.created_date || new Date().toISOString()
-    }).catch(err => console.error('[Webhook] Error:', err));
+    if (!isDraftSave) {
+      // Send webhook notification (only on send, not on draft save)
+      sendWebhookNotification(isUpdate ? 'proposal_updated' : 'proposal_created', {
+        proposal_url: proposalUrl,
+        slug: slug,
+        proposal_id: data.proposal_id || '',
+        lead_id: data.lead_id || '',
+        client: {
+          name: (data.client && data.client.name) || '',
+          company: (data.client && data.client.company) || '',
+          email: (data.client && data.client.email) || '',
+          phone: (data.client && data.client.phone) || ''
+        },
+        project_name: (data.project && data.project.name) || '',
+        pricing: buildPricingPayload(data),
+        created_date: data.created_date || new Date().toISOString()
+      }).catch(err => console.error('[Webhook] Error:', err));
 
-    // Auto-attach proposal to lead in CRM
-    if (data.lead_id) {
-      linkProposalToLead(data.lead_id, proposalUrl, (data.project && data.project.name) || '', (data.client && data.client.name) || '').catch(err => console.error('[CRM Link] Error:', err));
+      // Auto-attach proposal to lead in CRM + set stage to proposal_sent
+      if (data.lead_id) {
+        linkProposalToLead(data.lead_id, proposalUrl, (data.project && data.project.name) || '', (data.client && data.client.name) || '').catch(err => console.error('[CRM Link] Error:', err));
+      }
+    } else {
+      // Draft save: still attach proposal to lead, but do NOT change stage or fire webhook
+      if (data.lead_id) {
+        linkProposalToLeadDraft(data.lead_id, proposalUrl).catch(err => console.error('[CRM Link Draft] Error:', err));
+      }
     }
 
     return res.status(200).json({
@@ -641,7 +660,10 @@ app.get('/api/proposals', (req, res) => {
           status: status,
           due_now_cents: (data.pricing && data.pricing.due_now_cents) || 0,
           currency: (data.pricing && data.pricing.currency) || 'usd',
-          url: `/${data.slug}`
+          url: `/${data.slug}`,
+          view_count: data.view_count || 0,
+          first_viewed_at: data.first_viewed_at || null,
+          last_viewed_at: data.last_viewed_at || null
         };
       } catch (e) {
         return null;
@@ -915,10 +937,77 @@ app.post('/api/proposals/:slug/verify-payment', async (req, res) => {
       pricing: buildPricingPayload(data)
     }).catch(err => console.error('[Webhook] Error:', err));
 
+    // Auto-change lead stage to 'won' on payment
+    if (data.lead_id) {
+      updateLeadStageWon(data.lead_id).catch(err => console.error('[CRM Won] Error:', err));
+    }
+
     return res.json({ success: true, payment: data.payment });
   } catch (err) {
     console.error('Payment verification error:', err);
     return res.status(500).json({ error: 'Failed to verify payment' });
+  }
+});
+
+// ============================================
+// PROPOSAL VIEW TRACKING
+// ============================================
+app.post('/api/proposals/:slug/track-view', (req, res) => {
+  const slug = sanitizeSlug(req.params.slug);
+  if (!slug) return res.status(400).json({ error: 'Invalid slug' });
+
+  // Skip tracking for authenticated (logged-in) users
+  if (isAuthenticated(req)) {
+    return res.json({ tracked: false, reason: 'authenticated_user' });
+  }
+
+  const filePath = path.join(DATA_DIR, `${slug}.json`);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Proposal not found' });
+  }
+
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+
+    // Initialize views array if it doesn't exist
+    if (!data.views) data.views = [];
+
+    const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket.remoteAddress || '';
+    const cleanIp = ip.split(',')[0].trim();
+    const ua = req.headers['user-agent'] || '';
+    const now = new Date().toISOString();
+
+    // Deduplicate: don't record if same IP viewed within the last 30 minutes
+    const thirtyMinAgo = Date.now() - 30 * 60 * 1000;
+    const recentFromSameIp = data.views.find(v =>
+      v.ip === cleanIp && new Date(v.timestamp).getTime() > thirtyMinAgo
+    );
+
+    if (recentFromSameIp) {
+      return res.json({ tracked: false, reason: 'duplicate_within_30min' });
+    }
+
+    data.views.push({
+      timestamp: now,
+      ip: cleanIp,
+      user_agent: ua.substring(0, 200)
+    });
+
+    // Update first_viewed_at if this is the first view
+    if (!data.first_viewed_at) {
+      data.first_viewed_at = now;
+    }
+    data.last_viewed_at = now;
+    data.view_count = data.views.length;
+
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+
+    console.log(`[View] Proposal ${slug} viewed by ${cleanIp}`);
+
+    return res.json({ tracked: true, view_count: data.view_count });
+  } catch (err) {
+    console.error('Error tracking view:', err);
+    return res.status(500).json({ error: 'Error tracking view' });
   }
 });
 

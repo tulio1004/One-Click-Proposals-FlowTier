@@ -835,6 +835,15 @@
       if (data) {
         window.PROPOSAL_DATA = data;
         render(data);
+
+        // Track client view (server skips if user is logged in)
+        var slug = getSlugFromPath();
+        if (slug) {
+          fetch('/api/proposals/' + encodeURIComponent(slug) + '/track-view', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          }).catch(function () { /* silent */ });
+        }
       } else {
         container.innerHTML = '<div style="text-align:center;padding:80px 0;color:var(--color-text-muted);"><h2 style="margin-bottom:12px;">No Proposal Data</h2><p>This proposal is loading via the builder preview.</p></div>';
       }

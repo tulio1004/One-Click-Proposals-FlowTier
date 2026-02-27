@@ -402,13 +402,21 @@
         <span id="jsonImportStatus" style="margin-left:12px;font-size:0.8125rem;"></span>
       </div>
 
-      <!-- Submit Proposal -->
+      <!-- Save & Send Proposal -->
       <div class="create-proposal-section-solid">
-        <h3>Create & Send Proposal</h3>
-        <p style="color:var(--color-text-secondary);font-size:0.8125rem;margin-bottom:16px;">This will save the proposal on the server, generate a unique URL, and send the link + client details to your Make.com webhook.</p>
-        <button class="btn btn-primary" onclick="createProposal()" style="width:100%;padding:14px;font-size:1rem;">
-          Save &amp; Send
-        </button>
+        <h3>Save & Send Proposal</h3>
+        <div style="display:flex;gap:12px;margin-bottom:12px;">
+          <button class="btn btn-secondary" onclick="saveDraft()" style="flex:1;padding:14px;font-size:1rem;">
+            &#128190; Save Draft
+          </button>
+          <button class="btn btn-primary" onclick="createProposal()" style="flex:1;padding:14px;font-size:1rem;">
+            &#128640; Send Proposal
+          </button>
+        </div>
+        <p style="color:var(--color-text-secondary);font-size:0.75rem;margin:0;">
+          <strong>Save Draft</strong> &mdash; saves your work so you can finish later. Does not notify the client or change the lead stage.<br>
+          <strong>Send Proposal</strong> &mdash; saves, generates the URL, fires the webhook to Make.com, and sets the lead stage to "Proposal Sent".
+        </p>
         <div class="status-panel" id="createStatus" style="margin-top:16px;display:none;">
           <div id="createStatusText"></div>
           <pre id="createResponse"></pre>
