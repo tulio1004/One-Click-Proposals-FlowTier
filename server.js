@@ -23,6 +23,9 @@ const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || '';
 
 const stripe = STRIPE_SECRET_KEY ? require('stripe')(STRIPE_SECRET_KEY) : null;
 
+// CRM (Lead Manager) base URL for cross-system integration
+const CRM_BASE = process.env.CRM_BASE_URL || 'https://leads.flowtier.io';
+
 // Ensure directories exist
 [DATA_DIR, CONFIG_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -142,6 +145,91 @@ function peekNextId() {
   const yy = String(year).slice(-2);
   const num = String(count).padStart(2, '0');
   return `FT${yy}P${num}`;
+}
+
+// ============================================
+// PRICING HELPER — Build clean dollar-based pricing for webhooks
+// ============================================
+function buildPricingPayload(data) {
+  const pricing = data.pricing || {};
+  const currency = (pricing.currency || 'usd').toLowerCase();
+  const symbols = { usd: '$', eur: '€', gbp: '£', cad: 'CA$', aud: 'A$', brl: 'R$' };
+  const sym = symbols[currency] || '$';
+
+  const oneTimeCents = pricing.total_onetime_cents || 0;
+  const setupCents = pricing.total_setup_cents || 0;
+  const monthlyCents = pricing.total_monthly_cents || 0;
+  const dueNowCents = pricing.due_now_cents || 0;
+  const totalCents = oneTimeCents + setupCents + monthlyCents;
+
+  function fmt(cents) {
+    return sym + (cents / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  return {
+    currency: currency.toUpperCase(),
+    total: fmt(totalCents),
+    total_dollars: parseFloat((totalCents / 100).toFixed(2)),
+    one_time: fmt(oneTimeCents),
+    one_time_dollars: parseFloat((oneTimeCents / 100).toFixed(2)),
+    setup: fmt(setupCents),
+    setup_dollars: parseFloat((setupCents / 100).toFixed(2)),
+    monthly: fmt(monthlyCents),
+    monthly_dollars: parseFloat((monthlyCents / 100).toFixed(2)),
+    due_now: fmt(dueNowCents),
+    due_now_dollars: parseFloat((dueNowCents / 100).toFixed(2))
+  };
+}
+
+// ============================================
+// AUTO-ATTACH PROPOSAL TO LEAD IN CRM
+// ============================================
+async function linkProposalToLead(leadId, proposalUrl, projectName, clientName) {
+  if (!leadId) return;
+
+  try {
+    const http = require('http');
+    const https = require('https');
+    const url = new URL(`${CRM_BASE}/api/leads/${leadId}`);
+    const protocol = url.protocol === 'https:' ? https : http;
+
+    const patchData = JSON.stringify({
+      proposal_url: proposalUrl,
+      stage: 'proposal_sent'
+    });
+
+    const options = {
+      hostname: url.hostname,
+      port: url.port || (url.protocol === 'https:' ? 443 : 80),
+      path: url.pathname,
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(patchData),
+        'X-Source': 'flowtier-proposal-system'
+      }
+    };
+
+    await new Promise((resolve, reject) => {
+      const req = protocol.request(options, (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          console.log(`[CRM Link] Attached proposal to lead ${leadId}: ${res.statusCode}`);
+          resolve(body);
+        });
+      });
+      req.on('error', (err) => {
+        console.error(`[CRM Link] Failed to attach proposal to lead ${leadId}:`, err.message);
+        reject(err);
+      });
+      req.setTimeout(5000, () => { req.destroy(); reject(new Error('Timeout')); });
+      req.write(patchData);
+      req.end();
+    });
+  } catch (err) {
+    console.error(`[CRM Link] Error linking proposal to lead ${leadId}:`, err.message);
+  }
 }
 
 // ============================================
@@ -444,14 +532,14 @@ app.post('/api/proposals', (req, res) => {
         phone: (data.client && data.client.phone) || ''
       },
       project_name: (data.project && data.project.name) || '',
-      pricing: {
-        currency: (data.pricing && data.pricing.currency) || 'usd',
-        due_now_cents: (data.pricing && data.pricing.due_now_cents) || 0,
-        total_setup_cents: (data.pricing && data.pricing.total_setup_cents) || 0,
-        total_monthly_cents: (data.pricing && data.pricing.total_monthly_cents) || 0
-      },
+      pricing: buildPricingPayload(data),
       created_date: data.created_date || new Date().toISOString()
     }).catch(err => console.error('[Webhook] Error:', err));
+
+    // Auto-attach proposal to lead in CRM
+    if (data.lead_id) {
+      linkProposalToLead(data.lead_id, proposalUrl, (data.project && data.project.name) || '', (data.client && data.client.name) || '').catch(err => console.error('[CRM Link] Error:', err));
+    }
 
     return res.status(200).json({
       success: true,
@@ -692,11 +780,7 @@ app.post('/api/proposals/:slug/sign', async (req, res) => {
       signature: data.signature,
       project_name: (data.project && data.project.name) || '',
       payment_link: paymentLink,
-      amount_due: {
-        cents: dueNowCents,
-        formatted: `$${(dueNowCents / 100).toFixed(2)}`,
-        currency: (pricing.currency || 'usd').toUpperCase()
-      }
+      pricing: buildPricingPayload(data)
     }).catch(err => console.error('[Webhook] Error:', err));
 
     return res.json({ success: true, signature: data.signature });
@@ -819,6 +903,7 @@ app.post('/api/proposals/:slug/verify-payment', async (req, res) => {
       proposal_url: proposalUrl,
       slug: slug,
       proposal_id: data.proposal_id || '',
+      lead_id: data.lead_id || '',
       client: {
         name: (data.client && data.client.name) || '',
         company: (data.client && data.client.company) || '',
@@ -826,7 +911,8 @@ app.post('/api/proposals/:slug/verify-payment', async (req, res) => {
         phone: (data.client && data.client.phone) || ''
       },
       payment: data.payment,
-      project_name: (data.project && data.project.name) || ''
+      project_name: (data.project && data.project.name) || '',
+      pricing: buildPricingPayload(data)
     }).catch(err => console.error('[Webhook] Error:', err));
 
     return res.json({ success: true, payment: data.payment });
@@ -902,8 +988,6 @@ function getLoginPageHTML(error) {
 // ============================================
 // CRM LEAD SEARCH PROXY
 // ============================================
-const CRM_BASE = process.env.CRM_BASE_URL || 'https://leads.flowtier.io';
-
 // Proxy search leads from the CRM (avoids CORS in production)
 app.get('/api/crm/leads/search', requireBuilderAuth, async (req, res) => {
   try {
