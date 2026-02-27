@@ -1189,10 +1189,44 @@ textarea {
   color: var(--color-text);
 }
 
+.terms-section h3 {
+  font-size: 1rem;
+  margin-top: 28px;
+  margin-bottom: 10px;
+  color: var(--color-text);
+}
+
 .terms-section p {
   font-size: 0.8125rem;
   line-height: 1.7;
+  margin-bottom: 12px;
   color: var(--color-text-secondary);
+}
+
+.terms-section p:last-child {
+  margin-bottom: 0;
+}
+
+.terms-section strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.terms-section em {
+  font-style: italic;
+}
+
+.terms-section ul,
+.terms-section ol {
+  margin: 8px 0 12px;
+  padding-left: 1.5em;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+.terms-section li {
+  margin-bottom: 4px;
 }
 
 /* Signature Block */
