@@ -1161,8 +1161,10 @@
 
       return {
         name: i.name || '',
+        description: i.description || '',
         pricing_type: ptype,
-        amount_cents: amountCents
+        amount_cents: amountCents,
+        due_date: i.due_date || ''
       };
     });
     renderPricingItems();
