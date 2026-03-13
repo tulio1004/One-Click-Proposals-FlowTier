@@ -327,6 +327,10 @@ function isAuthenticated(req) {
 
 function requireBuilderAuth(req, res, next) {
   if (isAuthenticated(req)) return next();
+  // Return JSON error for API requests, redirect for page requests
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
   res.redirect('/login');
 }
 

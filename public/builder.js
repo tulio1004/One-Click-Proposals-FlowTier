@@ -1519,7 +1519,7 @@
     var select = document.getElementById('templateSelect');
     if (!select) return;
 
-    fetch('/api/templates')
+    fetch('/api/templates', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var templates = data.templates || [];
@@ -1554,7 +1554,7 @@
 
     statusEl.innerHTML = '<span style="color:var(--color-text-muted,#6b7a8d);">Loading template...</span>';
 
-    fetch('/api/templates/' + encodeURIComponent(templateId))
+    fetch('/api/templates/' + encodeURIComponent(templateId), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (templateData) {
         // Preserve current client info, lead_id, proposal_id, slug, date
@@ -1628,6 +1628,7 @@
 
     fetch('/api/templates', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: name,
