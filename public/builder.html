@@ -116,6 +116,23 @@
         </div>
       </div>
 
+      <!-- TEMPLATE SELECTOR -->
+      <div class="builder-section" style="border:1px solid rgba(0,230,118,0.2);background:rgba(0,230,118,0.03);">
+        <div class="builder-section-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <div><span style="font-size:1rem;margin-right:6px;">&#128196;</span> Proposal Template</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-end;">
+          <div class="form-group" style="flex:1;margin-bottom:0;">
+            <label for="templateSelect">Load a template to pre-fill the proposal</label>
+            <select id="templateSelect" style="width:100%;">
+              <option value="">— Select a template —</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="loadSelectedTemplate()" style="padding:10px 20px;white-space:nowrap;">Apply Template</button>
+        </div>
+        <div id="templateLoadStatus" style="margin-top:8px;font-size:0.8125rem;"></div>
+      </div>
+
       <!-- A) Client Information -->
       <div class="builder-section">
         <div class="builder-section-title" style="display:flex;align-items:center;justify-content:space-between;">
@@ -413,6 +430,11 @@
             &#128640; Send Proposal
           </button>
         </div>
+        <div style="margin-bottom:12px;">
+          <button class="btn btn-secondary" onclick="openSaveTemplateModal()" style="width:100%;padding:10px;font-size:0.875rem;border:1px dashed var(--color-border,#2a3a4a);">
+            &#128230; Save as Template
+          </button>
+        </div>
         <p style="color:var(--color-text-secondary);font-size:0.75rem;margin:0;">
           <strong>Save Draft</strong> &mdash; saves your work so you can finish later. Does not notify the client or change the lead stage.<br>
           <strong>Send Proposal</strong> &mdash; saves, generates the URL, fires the webhook to Make.com, and sets the lead stage to "Proposal Sent".
@@ -435,6 +457,30 @@
       <iframe id="previewFrame" src="/static/proposal.html"></iframe>
     </div>
 
+  </div>
+
+  <!-- Save as Template Modal -->
+  <div id="saveTemplateModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:var(--color-bg-elevated,#111b27);border:1px solid var(--color-border,#2a3a4a);border-radius:12px;width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.5);padding:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h3 style="font-size:1rem;font-weight:700;color:var(--color-text,#e0e0e0);margin:0;">Save as Template</h3>
+        <button onclick="closeSaveTemplateModal()" style="background:none;border:none;color:var(--color-text-muted,#6b7a8d);font-size:1.25rem;cursor:pointer;padding:4px 8px;">&#10005;</button>
+      </div>
+      <p style="font-size:0.8125rem;color:var(--color-text-muted,#6b7a8d);margin:0 0 16px;">Save the current proposal content (excluding client info) as a reusable template.</p>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label for="templateName">Template Name *</label>
+        <input type="text" id="templateName" placeholder="e.g., AI Front Office">
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label for="templateDesc">Description (optional)</label>
+        <input type="text" id="templateDesc" placeholder="e.g., Standard AI automation proposal for service businesses">
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-secondary" onclick="closeSaveTemplateModal()" style="flex:1;padding:10px;">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAsTemplate()" style="flex:1;padding:10px;">Save Template</button>
+      </div>
+      <div id="saveTemplateStatus" style="margin-top:12px;font-size:0.8125rem;"></div>
+    </div>
   </div>
 
   <!-- Hidden file input for JSON loading -->

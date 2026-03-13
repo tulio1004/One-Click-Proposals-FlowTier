@@ -320,6 +320,7 @@
   function init() {
     populateDropdown();
     loadWebhookUrl();
+    loadTemplateList();
     setDefaultDate();
     attachChangeListeners();
     setupAutoSlug();
@@ -1509,6 +1510,146 @@
       }
     }
   }
+
+  // ============================================
+  // TEMPLATE SYSTEM
+  // ============================================
+
+  function loadTemplateList() {
+    var select = document.getElementById('templateSelect');
+    if (!select) return;
+
+    fetch('/api/templates')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var templates = data.templates || [];
+        // Keep the first default option
+        select.innerHTML = '<option value="">\u2014 Select a template \u2014</option>';
+        templates.forEach(function (t) {
+          var opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = t.name + (t.systems.length ? ' (' + t.systems.join(', ') + ')' : '');
+          select.appendChild(opt);
+        });
+      })
+      .catch(function () { /* ignore */ });
+  }
+
+  window.loadSelectedTemplate = function () {
+    var select = document.getElementById('templateSelect');
+    var statusEl = document.getElementById('templateLoadStatus');
+    var templateId = select.value;
+
+    if (!templateId) {
+      statusEl.innerHTML = '<span style="color:var(--color-warning,#FFC107);">Please select a template first.</span>';
+      setTimeout(function () { statusEl.innerHTML = ''; }, 3000);
+      return;
+    }
+
+    // Confirm if form has data
+    var currentSlug = document.getElementById('proposalSlug').value;
+    if (currentSlug && !confirm('Loading a template will overwrite all current proposal content (except client info). Continue?')) {
+      return;
+    }
+
+    statusEl.innerHTML = '<span style="color:var(--color-text-muted,#6b7a8d);">Loading template...</span>';
+
+    fetch('/api/templates/' + encodeURIComponent(templateId))
+      .then(function (r) { return r.json(); })
+      .then(function (templateData) {
+        // Preserve current client info, lead_id, proposal_id, slug, date
+        var savedClient = {
+          name: document.getElementById('clientName').value,
+          company: document.getElementById('clientCompany').value,
+          email: document.getElementById('clientEmail').value,
+          phone: document.getElementById('clientPhone').value
+        };
+        var savedSlug = document.getElementById('proposalSlug').value;
+        var savedId = document.getElementById('proposalId').value;
+        var savedDate = document.getElementById('proposalDate').value;
+        var savedLeadId = _linkedLeadId;
+
+        // Populate from template (this will overwrite everything)
+        populateFromJSON(templateData);
+
+        // Restore client info
+        document.getElementById('clientName').value = savedClient.name;
+        document.getElementById('clientCompany').value = savedClient.company;
+        document.getElementById('clientEmail').value = savedClient.email;
+        document.getElementById('clientPhone').value = savedClient.phone;
+        document.getElementById('proposalSlug').value = savedSlug;
+        document.getElementById('proposalId').value = savedId;
+        document.getElementById('proposalDate').value = savedDate;
+        _linkedLeadId = savedLeadId;
+
+        statusEl.innerHTML = '<span style="color:var(--color-success,#00E676);">Template loaded: ' + escapeHtml(templateData._template_name || templateId) + '</span>';
+        showToast('Template applied: ' + (templateData._template_name || templateId));
+        setTimeout(function () { statusEl.innerHTML = ''; }, 4000);
+      })
+      .catch(function (err) {
+        statusEl.innerHTML = '<span style="color:var(--color-danger,#FF5252);">Error loading template: ' + escapeHtml(err.message) + '</span>';
+      });
+  };
+
+  window.openSaveTemplateModal = function () {
+    var modal = document.getElementById('saveTemplateModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      document.getElementById('templateName').value = '';
+      document.getElementById('templateDesc').value = '';
+      document.getElementById('saveTemplateStatus').innerHTML = '';
+      document.getElementById('templateName').focus();
+    }
+  };
+
+  window.closeSaveTemplateModal = function () {
+    var modal = document.getElementById('saveTemplateModal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  // Close modal on backdrop click
+  document.addEventListener('click', function (e) {
+    var modal = document.getElementById('saveTemplateModal');
+    if (e.target === modal) window.closeSaveTemplateModal();
+  });
+
+  window.saveAsTemplate = function () {
+    var name = document.getElementById('templateName').value.trim();
+    var desc = document.getElementById('templateDesc').value.trim();
+    var statusEl = document.getElementById('saveTemplateStatus');
+
+    if (!name) {
+      statusEl.innerHTML = '<span style="color:var(--color-danger,#FF5252);">Template name is required.</span>';
+      return;
+    }
+
+    var proposalData = buildJSON();
+    statusEl.innerHTML = '<span style="color:var(--color-text-muted,#6b7a8d);">Saving template...</span>';
+
+    fetch('/api/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        description: desc,
+        proposal_data: proposalData
+      })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.success) {
+        statusEl.innerHTML = '<span style="color:var(--color-success,#00E676);">Template saved: ' + escapeHtml(name) + '</span>';
+        showToast('Template saved: ' + name);
+        loadTemplateList(); // Refresh the dropdown
+        setTimeout(function () { window.closeSaveTemplateModal(); }, 1500);
+      } else {
+        statusEl.innerHTML = '<span style="color:var(--color-danger,#FF5252);">' + escapeHtml(data.error || 'Failed to save') + '</span>';
+      }
+    })
+    .catch(function (err) {
+      statusEl.innerHTML = '<span style="color:var(--color-danger,#FF5252);">Error: ' + escapeHtml(err.message) + '</span>';
+    });
+  };
 
   // ============================================
   // BOOT

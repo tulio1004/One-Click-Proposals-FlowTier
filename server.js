@@ -12,6 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const CONFIG_DIR = path.join(__dirname, 'config');
+const TEMPLATES_DIR = path.join(__dirname, 'templates');
 
 // Builder credentials
 const BUILDER_USER = process.env.BUILDER_USER || 'tulio';
@@ -27,7 +28,7 @@ const stripe = STRIPE_SECRET_KEY ? require('stripe')(STRIPE_SECRET_KEY) : null;
 const CRM_BASE = process.env.CRM_BASE_URL || 'https://leads.flowtier.io';
 
 // Ensure directories exist
-[DATA_DIR, CONFIG_DIR].forEach(dir => {
+[DATA_DIR, CONFIG_DIR, TEMPLATES_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
@@ -1104,6 +1105,119 @@ app.get('/api/crm/leads/search', requireBuilderAuth, async (req, res) => {
     proxyReq.setTimeout(5000, () => { proxyReq.destroy(); res.json({ leads: [] }); });
   } catch (e) {
     res.json({ leads: [] });
+  }
+});
+
+// ============================================
+// PROPOSAL TEMPLATES
+// ============================================
+
+// Helper: sanitize template name to a safe filename
+function sanitizeTemplateName(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 80);
+}
+
+// Helper: strip lead-specific fields from proposal data to create a template
+function extractTemplateData(proposalData) {
+  const {
+    proposal_id, slug, created_date, lead_id, client,
+    status, signature, payment, _received_at, _source,
+    ...templateFields
+  } = proposalData;
+  return templateFields;
+}
+
+// List all templates
+app.get('/api/templates', requireBuilderAuth, (req, res) => {
+  try {
+    const files = fs.readdirSync(TEMPLATES_DIR).filter(f => f.endsWith('.json'));
+    const templates = files.map(f => {
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(TEMPLATES_DIR, f), 'utf8'));
+        return {
+          id: f.replace('.json', ''),
+          name: data._template_name || f.replace('.json', ''),
+          description: data._template_description || '',
+          created_at: data._template_created_at || '',
+          updated_at: data._template_updated_at || '',
+          systems: (data.systems || []).map(s => s.name),
+          pricing_items: (data.pricing && data.pricing.items || []).length
+        };
+      } catch (e) { return null; }
+    }).filter(Boolean);
+
+    templates.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+    res.json({ templates });
+  } catch (err) {
+    console.error('[Templates] List error:', err.message);
+    res.status(500).json({ error: 'Failed to list templates' });
+  }
+});
+
+// Get a single template
+app.get('/api/templates/:id', requireBuilderAuth, (req, res) => {
+  const filePath = path.join(TEMPLATES_DIR, `${req.params.id}.json`);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Template not found' });
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read template' });
+  }
+});
+
+// Save a new template (from current proposal data)
+app.post('/api/templates', requireBuilderAuth, (req, res) => {
+  try {
+    const { name, description, proposal_data } = req.body;
+    if (!name || !proposal_data) {
+      return res.status(400).json({ error: 'Template name and proposal_data are required' });
+    }
+
+    const id = sanitizeTemplateName(name);
+    if (!id) return res.status(400).json({ error: 'Invalid template name' });
+
+    const templateData = extractTemplateData(proposal_data);
+    templateData._template_name = name;
+    templateData._template_description = description || '';
+    templateData._template_created_at = new Date().toISOString();
+    templateData._template_updated_at = new Date().toISOString();
+
+    const filePath = path.join(TEMPLATES_DIR, `${id}.json`);
+    const isUpdate = fs.existsSync(filePath);
+    if (isUpdate) {
+      // Preserve original creation date on update
+      try {
+        const existing = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        templateData._template_created_at = existing._template_created_at || templateData._template_created_at;
+      } catch (e) { /* ignore */ }
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(templateData, null, 2), 'utf8');
+    console.log(`[Templates] ${isUpdate ? 'Updated' : 'Created'}: ${name} (${id})`);
+
+    res.json({
+      success: true,
+      id,
+      name,
+      message: `Template ${isUpdate ? 'updated' : 'created'}: ${name}`
+    });
+  } catch (err) {
+    console.error('[Templates] Save error:', err.message);
+    res.status(500).json({ error: 'Failed to save template' });
+  }
+});
+
+// Delete a template
+app.delete('/api/templates/:id', requireBuilderAuth, (req, res) => {
+  const filePath = path.join(TEMPLATES_DIR, `${req.params.id}.json`);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Template not found' });
+  try {
+    fs.unlinkSync(filePath);
+    console.log(`[Templates] Deleted: ${req.params.id}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete template' });
   }
 });
 
