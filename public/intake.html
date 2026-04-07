@@ -2031,17 +2031,26 @@
     btn.innerHTML = '<span class="spinner"></span> Submitting…';
 
     submittedFormData = collectData();
-    // Attach intake metadata so the backend can route correctly
+    // Attach metadata
     submittedFormData.ghl_contact_id = intakeMeta.ghl_contact_id || '';
     submittedFormData.intake_id      = INTAKE_ID;
+    submittedFormData._submitted_at  = new Date().toISOString();
 
+    // Fire directly to n8n webhook (primary)
     try {
-      await fetch('/api/intake/' + INTAKE_ID + '/submit', {
+      await fetch('https://n8n.flowtier.io/webhook/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submittedFormData)
       });
-    } catch (_) { /* fire and forget — don't block the UX */ }
+    } catch (_) { /* don't block UX if webhook is unreachable */ }
+
+    // Also save to Proposals backend (secondary, fire and forget)
+    fetch('/api/intake/' + INTAKE_ID + '/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(submittedFormData)
+    }).catch(() => {});
 
     // Show success + calendar
     document.getElementById('form-area').style.display = 'none';
