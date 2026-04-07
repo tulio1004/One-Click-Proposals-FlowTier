@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlowTier — AI Front Office Onboarding</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Flowtier Design Tokens ── */
+    :root {
+      --green:      #7cd464;
+      --green-dark: #519d76;
+      --green-glow: rgba(124,212,100,.18);
+      --amber:      #f59e0b;
+      --bg:         #0a0a0a;
+      --bg2:        #111111;
+      --bg3:        #161616;
+      --card:       #1a1a1a;
+      --card2:      #1e1e1e;
+      --border:     rgba(255,255,255,.08);
+      --border-hi:  rgba(124,212,100,.35);
+      --text:       #f1f5f9;
+      --muted:      #94a3b8;
+      --font-body:  'Inter', sans-serif;
+      --font-head:  'Space Grotesk', sans-serif;
+      --radius:     12px;
+      --radius-sm:  8px;
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: var(--bg); /* solid dark — no image */
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center; /* center the logo */
+    }
+    .logo-img {
+      height: 38px;
+      width: auto;
+      display: block;
+      object-fit: contain;
+    }
+    .header-sep { display: none; }
+    .header-sub { display: none; }
+
+    /* ── Hero Banner ── */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 64px 24px 52px;
+      text-align: center;
+      /* Background image: cover + two-layer overlay for dark tint + green glow */
+      background-image:
+        radial-gradient(ellipse 70% 60% at 50% 100%, rgba(124,212,100,.13) 0%, transparent 65%),
+        linear-gradient(180deg, rgba(10,10,10,.82) 0%, rgba(10,10,10,.68) 40%, rgba(10,10,10,.88) 100%),
+        url('https://pub-31d62e62518745be82aee86237457564.r2.dev/Images/comparison-bg.png');
+      background-size: cover;
+      background-position: center 40%;
+    }
+    /* Subtle vignette on the sides */
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(10,10,10,.5) 0%, transparent 25%, transparent 75%, rgba(10,10,10,.5) 100%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(124,212,100,.1);
+      border: 1px solid rgba(124,212,100,.25);
+      color: var(--green);
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 99px;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-family: var(--font-head);
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -.5px;
+      margin-bottom: 14px;
+    }
+    .hero h1 em { font-style: normal; color: var(--green); }
+    .hero p {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    /* ── Progress Bar ── */
+    .progress-wrap {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .progress-track {
+      flex: 1;
+      height: 6px;
+      background: var(--bg3);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green-dark), var(--green));
+      border-radius: 99px;
+      transition: width .5s cubic-bezier(.4,0,.2,1);
+      width: 0%;
+      box-shadow: 0 0 8px var(--green-glow);
+    }
+    .progress-label {
+      font-size: .78rem;
+      color: var(--muted);
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .progress-pct {
+      font-size: .78rem;
+      color: var(--green);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* ── Step Tabs ── */
+    .step-tabs-wrap {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .step-tabs-wrap::-webkit-scrollbar { display: none; }
+    .step-tabs {
+      display: flex;
+      min-width: max-content;
+    }
+
+    .step-tab {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 12px 14px 10px;
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border: none;
+      border-right: 1px solid var(--border);
+      background: none;
+      font-family: var(--font-body);
+      border-bottom: 2.5px solid transparent;
+      white-space: nowrap;
+      transition: color .2s, border-bottom-color .2s, background .2s;
+      position: relative;
+    }
+    .step-tab:first-child { border-left: 1px solid var(--border); }
+    .step-tab:hover:not(.active):not(.done) {
+      color: rgba(241,245,249,.7);
+      background: rgba(255,255,255,.03);
+    }
+    .step-tab .tab-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--bg3);
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .65rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: all .2s;
+    }
+    /* Warning state — required fields left empty */
+    .step-tab.warn .tab-num {
+      background: rgba(245,158,11,.15);
+      border-color: rgba(245,158,11,.5);
+      color: var(--amber);
+    }
+    .step-tab.warn .tab-num::after {
+      content: '⚠';
+      font-size: .55rem;
+    }
+    .step-tab.warn { color: var(--amber); }
+    /* Done state */
+    .step-tab.done {
+      color: rgba(124,212,100,.7);
+    }
+    .step-tab.done .tab-num {
+      background: rgba(124,212,100,.15);
+      border-color: rgba(124,212,100,.4);
+      color: var(--green);
+    }
+    .step-tab.done .tab-num::after {
+      content: '✓';
+      font-size: .6rem;
+    }
+    .step-tab.done .tab-label { display: none; }
+    /* Active state */
+    .step-tab.active {
+      color: var(--green);
+      border-bottom-color: var(--green);
+      background: rgba(124,212,100,.04);
+    }
+    .step-tab.active .tab-num {
+      background: var(--green);
+      border-color: var(--green);
+      color: #0a0a0a;
+    }
+
+    /* ── Main Layout ── */
+    .form-wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 32px 16px 100px;
+    }
+
+    /* ── Section Card ── */
+    .section-card {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: fadeUp .4s ease;
+    }
+    .section-card.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      padding: 22px 28px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .card-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: rgba(124,212,100,.1);
+      border: 1px solid rgba(124,212,100,.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .card-title-wrap {}
+    .card-num {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 2px;
+    }
+    .card-title {
+      font-family: var(--font-head);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .card-desc {
+      font-size: .83rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .req-badge {
+      margin-left: auto;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      color: var(--amber);
+      background: rgba(245,158,11,.1);
+      border: 1px solid rgba(245,158,11,.25);
+      padding: 3px 9px;
+      border-radius: 99px;
+      white-space: nowrap;
+      align-self: flex-start;
+    }
+
+    .card-body { padding: 28px; }
+
+    /* ── Field Groups ── */
+    .field-group { margin-bottom: 22px; }
+    .field-group:last-child { margin-bottom: 0; }
+    .field-label {
+      display: block;
+      font-size: .83rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 7px;
+    }
+    .field-label .req { color: #ef4444; margin-left: 2px; }
+    .field-hint {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+
+    /* ── Inputs ── */
+    .ft-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: .88rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .ft-input::placeholder { color: var(--muted); opacity: .7; }
+    .ft-input:focus {
+      border-color: rgba(124,212,100,.5);
+      box-shadow: 0 0 0 3px rgba(124,212,100,.08);
+      background: var(--card2);
+    }
+    textarea.ft-input { resize: vertical; min-height: 80px; }
+
+    /* ── Grid ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    @media (max-width: 600px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    /* ── Radio / Checkbox ── */
+    .choice-group { display: flex; flex-direction: column; gap: 8px; }
+    .choice-group.cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    @media (max-width: 500px) { .choice-group.cols-2 { grid-template-columns: 1fr; } }
+
+    .choice-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      font-size: .85rem;
+      color: var(--text);
+      font-weight: 400;
+      line-height: 1.4;
+    }
+    .choice-item:hover { border-color: rgba(124,212,100,.3); background: var(--card2); }
+    .choice-item input { margin-top: 2px; accent-color: var(--green); flex-shrink: 0; }
+    .choice-item.selected { border-color: rgba(124,212,100,.5); background: rgba(124,212,100,.05); }
+
+    /* ── Table ── */
+    .ft-table { width: 100%; border-collapse: collapse; }
+    .ft-table th {
+      background: var(--bg3);
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 10px 12px;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .ft-table td {
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      vertical-align: top;
+    }
+    .ft-table td input,
+    .ft-table td textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: .83rem;
+      padding: 4px 6px;
+      outline: none;
+      resize: vertical;
+    }
+    .ft-table td input::placeholder,
+    .ft-table td textarea::placeholder { color: var(--muted); opacity: .6; }
+    .ft-table td input:focus,
+    .ft-table td textarea:focus { background: rgba(124,212,100,.04); border-radius: 4px; }
+
+    /* ── Add Row Button ── */
+    .btn-add-row {
+      margin-top: 8px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--green);
+      background: none;
+      border: 1.5px dashed rgba(124,212,100,.3);
+      padding: 7px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+      font-family: var(--font-body);
+    }
+    .btn-add-row:hover { background: rgba(124,212,100,.06); border-color: rgba(124,212,100,.5); }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 22px 0; }
+    .sub-label {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+      margin-top: 18px;
+    }
+
+    /* ── Info Box ── */
+    .info-box {
+      background: rgba(124,212,100,.06);
+      border: 1px solid rgba(124,212,100,.2);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: .82rem;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+    .info-box strong { color: var(--green); }
+
+    /* ── Navigation ── */
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 24px;
+      gap: 12px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 26px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: .9rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+    }
+    .btn-prev {
+      background: var(--bg3);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-prev:hover { color: var(--text); border-color: rgba(255,255,255,.15); }
+    .btn-next {
+      background: linear-gradient(135deg, var(--green-dark), var(--green));
+      color: #0a0a0a;
+      box-shadow: 0 0 20px rgba(124,212,100,.2);
+    }
+    .btn-next:hover { box-shadow: 0 0 28px rgba(124,212,100,.35); transform: translateY(-1px); }
+    .btn-submit {
+      background: linear-gradient(135deg, var(--green-dark), var(--green));
+      color: #0a0a0a;
+      box-shadow: 0 0 20px rgba(124,212,100,.2);
+      padding: 14px 36px;
+      font-size: .95rem;
+    }
+    .btn-submit:hover { box-shadow: 0 0 32px rgba(124,212,100,.4); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── Error Banner ── */
+    .error-banner {
+      display: none;
+      background: rgba(239,68,68,.08);
+      border: 1px solid rgba(239,68,68,.3);
+      color: #fca5a5;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: .83rem;
+      margin-bottom: 16px;
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2.5px solid rgba(10,10,10,.3);
+      border-top-color: #0a0a0a;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ══════════════════════════════════════════════
+       CALENDAR WIDGET (Success Screen)
+    ══════════════════════════════════════════════ */
+    #success-screen { display: none; }
+
+    .success-header {
+      text-align: center;
+      padding: 48px 24px 32px;
+    }
+    .success-icon {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: rgba(124,212,100,.15);
+      border: 1px solid rgba(124,212,100,.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 2rem;
+    }
+    .success-header h2 {
+      font-family: var(--font-head);
+      font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .success-header h2 em { font-style: normal; color: var(--green); }
+    .success-header p { color: var(--muted); font-size: .95rem; max-width: 480px; margin: 0 auto; }
+
+    .calendar-card {
+      max-width: 680px;
+      margin: 0 auto 60px;
+      padding: 0 16px;
+    }
+    .calendar-card-inner {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .cal-header {
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 24px;
+      text-align: center;
+    }
+    .cal-header h3 {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .cal-header p { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+
+    .cal-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    @media (max-width: 560px) { .cal-body { grid-template-columns: 1fr; } }
+
+    .cal-left {
+      padding: 20px;
+      border-right: 1px solid var(--border);
+    }
+    @media (max-width: 560px) { .cal-left { border-right: none; border-bottom: 1px solid var(--border); } }
+
+    .cal-month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .cal-month-nav button {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .2s;
+    }
+    .cal-month-nav button:hover:not(:disabled) { border-color: rgba(124,212,100,.4); color: var(--green); }
+    .cal-month-nav button:disabled { opacity: .3; cursor: not-allowed; }
+    .cal-month-name { font-weight: 700; font-size: .88rem; color: var(--text); }
+
+    .cal-day-labels {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      margin-bottom: 4px;
+    }
+    .cal-day-label {
+      text-align: center;
+      font-size: .65rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      padding: 3px 0;
+    }
+    .cal-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-size: .78rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .2s;
+      border: 1px solid transparent;
+      color: var(--text);
+    }
+    .cal-day:hover:not(.disabled):not(.selected) { background: rgba(124,212,100,.08); border-color: rgba(124,212,100,.2); }
+    .cal-day.disabled { color: var(--muted); opacity: .35; cursor: not-allowed; }
+    .cal-day.today:not(.selected) { border-color: rgba(124,212,100,.3); color: var(--green); }
+    .cal-day.selected { background: var(--green); color: #0a0a0a; font-weight: 700; box-shadow: 0 0 10px rgba(124,212,100,.3); }
+    .cal-day.empty { cursor: default; }
+
+    .cal-right {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .cal-right h4 {
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 12px;
+    }
+    .slots-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 260px;
+    }
+    .slot-btn {
+      width: 100%;
+      padding: 9px 14px;
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: .83rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .slot-btn:hover { border-color: rgba(124,212,100,.35); background: rgba(124,212,100,.04); }
+    .slot-btn.selected { border-color: rgba(124,212,100,.5); background: rgba(124,212,100,.08); color: var(--green); }
+    .slot-duration { font-size: .72rem; color: var(--muted); }
+    .slots-empty { color: var(--muted); font-size: .83rem; text-align: center; padding: 24px 0; }
+    .slots-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: .83rem;
+      padding: 24px 0;
+      justify-content: center;
+    }
+    .slots-loading .spinner { border-color: rgba(124,212,100,.2); border-top-color: var(--green); }
+
+    .cal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--bg3);
+    }
+    .btn-book {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--green-dark), var(--green));
+      color: #0a0a0a;
+      font-family: var(--font-head);
+      font-size: .9rem;
+      font-weight: 700;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all .2s;
+      box-shadow: 0 0 18px rgba(124,212,100,.2);
+    }
+    .btn-book:hover:not(:disabled) { box-shadow: 0 0 28px rgba(124,212,100,.35); transform: translateY(-1px); }
+    .btn-book:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .cal-tz { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 8px; }
+
+    /* ── Booking Confirmation ── */
+    #booking-confirmed { display: none; }
+    .confirmed-card {
+      max-width: 480px;
+      margin: 0 auto 60px;
+      padding: 0 16px;
+    }
+    .confirmed-inner {
+      background: var(--card);
+      border: 1px solid rgba(124,212,100,.2);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+    .confirmed-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .88rem;
+    }
+    .confirmed-row:last-child { border-bottom: none; }
+    .confirmed-row .ci { color: var(--green); font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .confirmed-row strong { display: block; color: var(--text); font-weight: 600; }
+    .confirmed-row span { color: var(--muted); font-size: .8rem; }
+    .confirmed-row a { color: var(--green); font-size: .8rem; word-break: break-all; }
+    .confirmed-row a:hover { text-decoration: underline; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg2); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.2); }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+<header class="header">
+  <img class="logo-img" src="https://pub-31d62e62518745be82aee86237457564.r2.dev/Images/Logo%20Header.webp" alt="FlowTier" />
+  <div class="header-sep"></div>
+  <span class="header-sub">AI Front Office — Onboarding</span>
+</header>
+
+<!-- ══ HERO ════════════════════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">🤖 AI System Setup</div>
+  <h1>Let's Build Your <em>AI Front Office</em></h1>
+  <p>This questionnaire gives us everything we need. Most clients finish in 20–30 minutes. The more detail you provide, the better your AI performs from day one.</p>
+</div>
+
+<!-- ══ PROGRESS ════════════════════════════════════════════════════ -->
+<div class="progress-wrap" id="progress-wrap">
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <span class="progress-label" id="progress-label">Step 1 of 18</span>
+  <span class="progress-pct" id="progress-pct">0%</span>
+</div>
+
+<!-- ══ FORM AREA ═══════════════════════════════════════════════════ -->
+<div class="form-wrap" id="form-area">
+  <div class="step-tabs-wrap" id="step-tabs-wrap">
+    <div class="step-tabs" id="step-tabs"></div>
+  </div>
+  <div class="error-banner" id="error-banner"></div>
+
+  <form id="onboarding-form" novalidate>
+
+    <!-- ═══ STEP 0: Contact Info ════════════════════════════════════ -->
+    <div class="section-card active" data-step="0">
+      <div class="card-header">
+        <div class="card-icon">👤</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Getting Started</div>
+          <div class="card-title">Your Contact Information</div>
+          <div class="card-desc">We'll use this to set up your account and reach you.</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Your Name <span class="req">*</span></label>
+            <input class="ft-input" type="text" name="name" placeholder="Full name" required />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Business Name <span class="req">*</span></label>
+            <input class="ft-input" type="text" name="business_name" placeholder="Your company name" required />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Email <span class="req">*</span></label>
+            <input class="ft-input" type="email" name="email" placeholder="you@yourbusiness.com" required />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Phone <span class="req">*</span></label>
+            <input class="ft-input" type="tel" name="phone" placeholder="(555) 555-5555" required />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 1: What Should Your AI Do? ═══════════════════════ -->
+    <div class="section-card" data-step="1">
+      <div class="card-header">
+        <div class="card-icon">🎯</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 1</div>
+          <div class="card-title">What Should Your AI Do?</div>
+          <div class="card-desc">The #1 thing we need to know — what's the main goal when a lead reaches out?</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">When someone contacts your business, what should the AI try to get them to do? <span class="req">*</span></label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="primary_goal" value="book_appointment" /> Book an appointment or consultation</label>
+            <label class="choice-item"><input type="radio" name="primary_goal" value="send_booking_link" /> Send them a booking link to self-schedule (Calendly, etc.)</label>
+            <label class="choice-item"><input type="radio" name="primary_goal" value="make_purchase" /> Make a purchase / send them to a checkout page</label>
+            <label class="choice-item"><input type="radio" name="primary_goal" value="qualify_handoff" /> Qualify them and pass them to you or your team</label>
+            <label class="choice-item"><input type="radio" name="primary_goal" value="other" /> Other</label>
+          </div>
+          <input class="ft-input" type="text" name="primary_goal_other" placeholder="If 'Other,' describe..." style="margin-top:10px;" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Should the AI send people to watch a video before booking/buying?</label>
+          <p class="field-hint">Works well for higher-ticket services where people need education first</p>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="video_step" value="yes" /> Yes — send them to a video first</label>
+            <label class="choice-item"><input type="radio" name="video_step" value="no" /> No — go straight to booking/conversion</label>
+          </div>
+          <input class="ft-input" type="url" name="video_url" placeholder="Video page URL (if applicable): https://..." style="margin-top:10px;" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Important Links <span class="req">*</span></label>
+          <p class="field-hint">Provide any links the AI should use or send to people</p>
+          <div class="grid-2">
+            <div>
+              <label class="field-label" style="font-size:.78rem;font-weight:500;color:var(--muted);">Booking / Scheduling Link</label>
+              <input class="ft-input" type="url" name="booking_link" placeholder="https://calendly.com/..." />
+            </div>
+            <div>
+              <label class="field-label" style="font-size:.78rem;font-weight:500;color:var(--muted);">Main Website</label>
+              <input class="ft-input" type="url" name="website" placeholder="https://yourbusiness.com" />
+            </div>
+            <div>
+              <label class="field-label" style="font-size:.78rem;font-weight:500;color:var(--muted);">Purchase / Checkout Link</label>
+              <input class="ft-input" type="url" name="checkout_link" placeholder="https://..." />
+            </div>
+            <div>
+              <label class="field-label" style="font-size:.78rem;font-weight:500;color:var(--muted);">Google Reviews Page</label>
+              <input class="ft-input" type="url" name="reviews_link" placeholder="https://g.page/..." />
+            </div>
+          </div>
+          <label class="field-label" style="margin-top:14px;font-size:.78rem;font-weight:500;color:var(--muted);">Other links the AI should share (portfolio, social, etc.)</label>
+          <textarea class="ft-input" name="other_links" rows="2" placeholder="One per line"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 2: About Your Business ═══════════════════════════ -->
+    <div class="section-card" data-step="2">
+      <div class="card-header">
+        <div class="card-icon">🏢</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 2</div>
+          <div class="card-title">About Your Business</div>
+          <div class="card-desc">The basics your AI needs to know to represent you properly.</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">What type of business do you run? <span class="req">*</span></label>
+            <input class="ft-input" type="text" name="business_type" placeholder="e.g. HVAC, Med Spa, Law Firm, Dental..." />
+          </div>
+          <div class="field-group">
+            <label class="field-label">How long have you been in business? <span class="req">*</span></label>
+            <input class="ft-input" type="text" name="years_in_business" placeholder="e.g. 8 years" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Website <span class="req">*</span></label>
+          <input class="ft-input" type="url" name="website_2" placeholder="https://yourbusiness.com" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">What's your main service? <span class="req">*</span></label>
+          <p class="field-hint">The thing most people contact you about</p>
+          <input class="ft-input" type="text" name="main_service" placeholder="e.g. AC repair, Botox treatments, personal injury cases..." />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Do you offer other services?</label>
+          <p class="field-hint">List everything the AI should know about — even if it's secondary</p>
+          <textarea class="ft-input" name="other_services" rows="3" placeholder="e.g. AC installation, duct cleaning, maintenance plans..."></textarea>
+        </div>
+
+        <hr class="divider" />
+        <div class="field-group">
+          <label class="field-label">Pricing — How should the AI talk about your pricing? <span class="req">*</span></label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="pricing_approach" value="exact" /> Share exact prices</label>
+            <label class="choice-item"><input type="radio" name="pricing_approach" value="ranges" /> Give price ranges</label>
+            <label class="choice-item"><input type="radio" name="pricing_approach" value="starts_at" /> Say "starts at $___"</label>
+            <label class="choice-item"><input type="radio" name="pricing_approach" value="book_consultation" /> Don't share pricing — book them for a consultation instead</label>
+          </div>
+          <textarea class="ft-input" name="pricing_details" rows="4" placeholder="If sharing pricing, list your services and prices here..." style="margin-top:10px;"></textarea>
+        </div>
+
+        <hr class="divider" />
+        <div class="field-group">
+          <label class="field-label">Service Area <span class="req">*</span></label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="service_area" value="local" /> Local — specific cities/neighborhoods</label>
+            <label class="choice-item"><input type="radio" name="service_area" value="regional" /> Regional — specific states or metro areas</label>
+            <label class="choice-item"><input type="radio" name="service_area" value="national" /> National</label>
+            <label class="choice-item"><input type="radio" name="service_area" value="online" /> Online / virtual (serve clients anywhere)</label>
+          </div>
+          <input class="ft-input" type="text" name="service_area_detail" placeholder="Specify your area: e.g. Greater Houston area, North Dallas..." style="margin-top:10px;" />
+        </div>
+
+        <hr class="divider" />
+        <div class="field-group">
+          <label class="field-label">Business Hours <span class="req">*</span></label>
+          <table class="ft-table">
+            <thead><tr><th>Day</th><th>Open</th><th>Close</th><th>Closed?</th></tr></thead>
+            <tbody>
+              <tr><td>Monday</td><td><input type="text" name="hours_mon_open" placeholder="9:00 AM" /></td><td><input type="text" name="hours_mon_close" placeholder="5:00 PM" /></td><td><input type="checkbox" name="hours_mon_closed" /></td></tr>
+              <tr><td>Tuesday</td><td><input type="text" name="hours_tue_open" /></td><td><input type="text" name="hours_tue_close" /></td><td><input type="checkbox" name="hours_tue_closed" /></td></tr>
+              <tr><td>Wednesday</td><td><input type="text" name="hours_wed_open" /></td><td><input type="text" name="hours_wed_close" /></td><td><input type="checkbox" name="hours_wed_closed" /></td></tr>
+              <tr><td>Thursday</td><td><input type="text" name="hours_thu_open" /></td><td><input type="text" name="hours_thu_close" /></td><td><input type="checkbox" name="hours_thu_closed" /></td></tr>
+              <tr><td>Friday</td><td><input type="text" name="hours_fri_open" /></td><td><input type="text" name="hours_fri_close" /></td><td><input type="checkbox" name="hours_fri_closed" /></td></tr>
+              <tr><td>Saturday</td><td><input type="text" name="hours_sat_open" /></td><td><input type="text" name="hours_sat_close" /></td><td><input type="checkbox" name="hours_sat_closed" /></td></tr>
+              <tr><td>Sunday</td><td><input type="text" name="hours_sun_open" /></td><td><input type="text" name="hours_sun_close" /></td><td><input type="checkbox" name="hours_sun_closed" /></td></tr>
+            </tbody>
+          </table>
+          <input class="ft-input" type="text" name="timezone" placeholder="Time Zone: e.g. Eastern, Central, Pacific" style="margin-top:10px;" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">When someone reaches out after hours, the AI should:</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="after_hours" value="24_7" /> Still book appointments (24/7 scheduling)</label>
+            <label class="choice-item"><input type="radio" name="after_hours" value="collect_callback" /> Collect their info and let them know you'll reach out next business day</label>
+            <label class="choice-item"><input type="radio" name="after_hours" value="custom" /> Custom response (describe below)</label>
+          </div>
+          <textarea class="ft-input" name="after_hours_custom" rows="2" placeholder="Custom after-hours message..." style="margin-top:10px;"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 3: Current Setup ══════════════════════════════════ -->
+    <div class="section-card" data-step="3">
+      <div class="card-header">
+        <div class="card-icon">🔧</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 3</div>
+          <div class="card-title">Your Current Setup</div>
+          <div class="card-desc">What tools do you already use? This tells us what we're connecting your AI to.</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">How do you currently manage leads and customer info? <span class="req">*</span></label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="crm" value="ghl" /> GoHighLevel (GHL)</label>
+            <label class="choice-item"><input type="radio" name="crm" value="hubspot" /> HubSpot</label>
+            <label class="choice-item"><input type="radio" name="crm" value="salesforce" /> Salesforce</label>
+            <label class="choice-item"><input type="radio" name="crm" value="sheets" /> Spreadsheet / Google Sheets</label>
+            <label class="choice-item"><input type="radio" name="crm" value="none" /> I don't really have a system — it's mostly in my head / phone</label>
+            <label class="choice-item"><input type="radio" name="crm" value="other" /> Other</label>
+          </div>
+          <input class="ft-input" type="text" name="crm_other" placeholder="If other, what do you use?" style="margin-top:10px;" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">What calendar/scheduling system do you use? <span class="req">*</span></label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="calendar_system" value="calendly" /> Calendly</label>
+            <label class="choice-item"><input type="radio" name="calendar_system" value="acuity" /> Acuity Scheduling</label>
+            <label class="choice-item"><input type="radio" name="calendar_system" value="ghl_calendar" /> GoHighLevel Calendar</label>
+            <label class="choice-item"><input type="radio" name="calendar_system" value="google_calendar" /> Google Calendar</label>
+            <label class="choice-item"><input type="radio" name="calendar_system" value="none" /> I don't have one set up yet</label>
+            <label class="choice-item"><input type="radio" name="calendar_system" value="other" /> Other</label>
+          </div>
+          <input class="ft-input" type="text" name="calendar_other" placeholder="If other, what do you use?" style="margin-top:10px;" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">What phone system do you use for your business?</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="phone_system" value="personal_cell" /> My personal cell phone</label>
+            <label class="choice-item"><input type="radio" name="phone_system" value="business_cell" /> Business cell phone (separate line)</label>
+            <label class="choice-item"><input type="radio" name="phone_system" value="voip" /> VoIP (RingCentral, Vonage, 8x8, etc.)</label>
+            <label class="choice-item"><input type="radio" name="phone_system" value="ghl_phone" /> GoHighLevel phone number</label>
+            <label class="choice-item"><input type="radio" name="phone_system" value="landline" /> Landline</label>
+            <label class="choice-item"><input type="radio" name="phone_system" value="other" /> Other</label>
+          </div>
+          <input class="ft-input" type="text" name="phone_system_other" placeholder="If other, what do you use?" style="margin-top:10px;" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Do you use any payment processing?</label>
+          <p class="field-hint">Only relevant if your AI will send payment or checkout links</p>
+          <div class="choice-group cols-2">
+            <label class="choice-item"><input type="checkbox" name="payment[]" value="stripe" /> Stripe</label>
+            <label class="choice-item"><input type="checkbox" name="payment[]" value="paypal" /> PayPal</label>
+            <label class="choice-item"><input type="checkbox" name="payment[]" value="square" /> Square</label>
+            <label class="choice-item"><input type="checkbox" name="payment[]" value="not_needed" /> Not needed</label>
+            <label class="choice-item"><input type="checkbox" name="payment[]" value="other" /> Other</label>
+          </div>
+          <input class="ft-input" type="text" name="payment_other" placeholder="If other, what do you use?" style="margin-top:10px;" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Anything else you use to run your business that we should know about?</label>
+          <p class="field-hint">Email marketing, review management, EHR/EMR, POS system, project management tools, etc.</p>
+          <textarea class="ft-input" name="other_tools" rows="3" placeholder="e.g. Mailchimp for emails, Podium for reviews, Jane App for patient intake..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 4: Channels ════════════════════════════════════════ -->
+    <div class="section-card" data-step="4">
+      <div class="card-header">
+        <div class="card-icon">📡</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 4</div>
+          <div class="card-title">Where Should Your AI Show Up?</div>
+          <div class="card-desc">Which channels do you want activated? Check all that apply.</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">Where do your leads typically contact you? <span class="req">*</span></label>
+          <table class="ft-table">
+            <thead><tr><th>Channel</th><th>Turn On?</th><th>Your Handle / Number / Account</th></tr></thead>
+            <tbody>
+              <tr><td>SMS / Text</td><td><input type="checkbox" name="ch_sms" /></td><td><input type="text" name="ch_sms_account" placeholder="Phone number" /></td></tr>
+              <tr><td>Website Chat Widget</td><td><input type="checkbox" name="ch_chat" /></td><td><input type="text" name="ch_chat_account" placeholder="Website URL" /></td></tr>
+              <tr><td>Instagram DMs</td><td><input type="checkbox" name="ch_ig" /></td><td><input type="text" name="ch_ig_account" placeholder="@handle" /></td></tr>
+              <tr><td>Facebook Messenger</td><td><input type="checkbox" name="ch_fb" /></td><td><input type="text" name="ch_fb_account" placeholder="Page name" /></td></tr>
+              <tr><td>WhatsApp</td><td><input type="checkbox" name="ch_wa" /></td><td><input type="text" name="ch_wa_account" placeholder="Number" /></td></tr>
+              <tr><td>Email</td><td><input type="checkbox" name="ch_email" /></td><td><input type="text" name="ch_email_account" placeholder="Email address" /></td></tr>
+              <tr><td>Phone / Voice (AI answers calls)</td><td><input type="checkbox" name="ch_voice" /></td><td><input type="text" name="ch_voice_account" placeholder="Phone number" /></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Should the AI behave differently on different channels?</label>
+          <p class="field-hint">e.g. shorter replies on Instagram, more detailed on email, no links on SMS. Leave blank for sensible defaults.</p>
+          <textarea class="ft-input" name="channel_preferences" rows="3" placeholder="Any channel-specific preferences..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 5: Voice Agent ════════════════════════════════════ -->
+    <div class="section-card" data-step="5">
+      <div class="card-header">
+        <div class="card-icon">📞</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 5</div>
+          <div class="card-title">Voice Agent (Phone AI)</div>
+          <div class="card-desc">If you checked "Phone / Voice" above, fill this out. Otherwise skip ahead.</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">Do you want an AI that answers or makes phone calls?</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="voice_agent" value="yes" /> Yes</label>
+            <label class="choice-item"><input type="radio" name="voice_agent" value="no" /> No — skip this section</label>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Preferred voice (male / female)</label>
+            <input class="ft-input" type="text" name="voice_gender" placeholder="e.g. Female" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Speaking style</label>
+            <input class="ft-input" type="text" name="voice_style" placeholder="e.g. Friendly and warm, professional, calm" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">How should the AI introduce itself? <span class="req">*</span></label>
+          <p class="field-hint">Used for both phone calls and chat/text opening messages</p>
+          <textarea class="ft-input" name="ai_intro" rows="2" placeholder='"Thanks for calling Smith Dental — this is Sarah, how can I help you today?"'></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">When should the AI transfer a call to a live person?</label>
+          <textarea class="ft-input" name="transfer_triggers" rows="3" placeholder="e.g. If someone asks to speak to a human, if it's an existing patient with a billing question..."></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Who should calls be transferred to?</label>
+          <table class="ft-table">
+            <thead><tr><th>Name</th><th>Role</th><th>Phone Number</th></tr></thead>
+            <tbody>
+              <tr><td><input type="text" name="transfer1_name" /></td><td><input type="text" name="transfer1_role" /></td><td><input type="text" name="transfer1_phone" /></td></tr>
+              <tr><td><input type="text" name="transfer2_name" /></td><td><input type="text" name="transfer2_role" /></td><td><input type="text" name="transfer2_phone" /></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Should calls be recorded?</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="recording" value="yes_announce" /> Yes — AI will announce the recording</label>
+            <label class="choice-item"><input type="radio" name="recording" value="consent_only" /> Only with explicit consent</label>
+            <label class="choice-item"><input type="radio" name="recording" value="no" /> No recording</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Any other voice/phone preferences?</label>
+          <textarea class="ft-input" name="voice_other" rows="2" placeholder="e.g. Max call length, hold behavior, anything else..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 6: AI Personality ════════════════════════════════ -->
+    <div class="section-card" data-step="6">
+      <div class="card-header">
+        <div class="card-icon">🎭</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 6</div>
+          <div class="card-title">Your AI's Personality</div>
+          <div class="card-desc">How should your AI sound when it talks to customers?</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">AI Name</label>
+          <p class="field-hint">Give your AI a name (e.g. "Sarah"), or leave blank to use your business name</p>
+          <input class="ft-input" type="text" name="ai_name" placeholder="e.g. Sarah, Alex, or leave blank" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">How should your AI come across? <span class="req">*</span> (Check all that apply)</label>
+          <div class="choice-group cols-2">
+            <label class="choice-item"><input type="checkbox" name="tone[]" value="professional" /> Professional and polished</label>
+            <label class="choice-item"><input type="checkbox" name="tone[]" value="friendly" /> Friendly and conversational</label>
+            <label class="choice-item"><input type="checkbox" name="tone[]" value="enthusiastic" /> Enthusiastic and energetic</label>
+            <label class="choice-item"><input type="checkbox" name="tone[]" value="calm" /> Calm and reassuring</label>
+            <label class="choice-item"><input type="checkbox" name="tone[]" value="direct" /> Direct and to-the-point</label>
+            <label class="choice-item"><input type="checkbox" name="tone[]" value="warm" /> Warm and caring</label>
+            <label class="choice-item"><input type="checkbox" name="tone[]" value="casual" /> Casual and relaxed</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Quick preferences</label>
+          <table class="ft-table">
+            <thead><tr><th></th><th>Yes</th><th>No</th><th>Sparingly</th></tr></thead>
+            <tbody>
+              <tr><td>Emojis</td><td><input type="radio" name="use_emojis" value="yes" /></td><td><input type="radio" name="use_emojis" value="no" /></td><td><input type="radio" name="use_emojis" value="sparingly" /></td></tr>
+              <tr><td>Use customer's first name</td><td><input type="radio" name="use_firstname" value="yes" /></td><td><input type="radio" name="use_firstname" value="no" /></td><td><input type="radio" name="use_firstname" value="sparingly" /></td></tr>
+              <tr><td>Industry jargon / technical terms</td><td><input type="radio" name="use_jargon" value="yes" /></td><td><input type="radio" name="use_jargon" value="no" /></td><td><input type="radio" name="use_jargon" value="sparingly" /></td></tr>
+              <tr><td>Humor</td><td><input type="radio" name="use_humor" value="yes" /></td><td><input type="radio" name="use_humor" value="no" /></td><td><input type="radio" name="use_humor" value="sparingly" /></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Real Conversation Examples (Highly Recommended)</label>
+          <p class="field-hint">Paste 2–3 real text messages, DMs, or emails you've sent to customers. This helps us match your actual voice better than any checkbox.</p>
+          <textarea class="ft-input" name="voice_samples" rows="8" placeholder="Paste real conversations here..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 7: Credibility ════════════════════════════════════ -->
+    <div class="section-card" data-step="7">
+      <div class="card-header">
+        <div class="card-icon">⭐</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 7</div>
+          <div class="card-title">Credibility &amp; Social Proof</div>
+          <div class="card-desc">What should your AI say to build trust? Think about what YOU say when selling.</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">Owner / Founder Info (optional)</label>
+          <p class="field-hint">If mentioning the owner adds credibility (e.g. "Founded by Dr. Smith, who has 15 years of experience...")</p>
+          <div class="grid-2">
+            <div>
+              <label class="field-label" style="font-size:.78rem;font-weight:500;color:var(--muted);">Name</label>
+              <input class="ft-input" type="text" name="founder_name" />
+            </div>
+            <div>
+              <label class="field-label" style="font-size:.78rem;font-weight:500;color:var(--muted);">Short bio (1–2 sentences)</label>
+              <input class="ft-input" type="text" name="founder_bio" placeholder="e.g. 15 years in the industry, certified by..." />
+            </div>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Stats and proof points your AI can drop into conversation</label>
+          <p class="field-hint">e.g. "500+ happy clients," "15 years in business," "4.9 stars on Google with 200+ reviews," "Licensed and insured"</p>
+          <textarea class="ft-input" name="proof_points" rows="3" placeholder="List your best credibility stats — one per line"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Client Success Stories</label>
+          <p class="field-hint">Share 1–3 quick wins. The AI uses these when a lead hesitates or asks for proof.</p>
+          <table class="ft-table">
+            <thead><tr><th>Client Type / Industry</th><th>What they were dealing with</th><th>Result you got them</th></tr></thead>
+            <tbody>
+              <tr><td><textarea rows="2" name="cs1_client"></textarea></td><td><textarea rows="2" name="cs1_before"></textarea></td><td><textarea rows="2" name="cs1_result"></textarea></td></tr>
+              <tr><td><textarea rows="2" name="cs2_client"></textarea></td><td><textarea rows="2" name="cs2_before"></textarea></td><td><textarea rows="2" name="cs2_result"></textarea></td></tr>
+              <tr><td><textarea rows="2" name="cs3_client"></textarea></td><td><textarea rows="2" name="cs3_before"></textarea></td><td><textarea rows="2" name="cs3_result"></textarea></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 8: Lead Qualification ════════════════════════════ -->
+    <div class="section-card" data-step="8">
+      <div class="card-header">
+        <div class="card-icon">🔍</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 8</div>
+          <div class="card-title">What Info Should the AI Collect?</div>
+          <div class="card-desc">What do you need to know before you can help someone?</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">Check everything the AI should ask for: <span class="req">*</span></label>
+          <div class="choice-group cols-2">
+            <label class="choice-item"><input type="checkbox" name="collect[]" value="full_name" /> Full name</label>
+            <label class="choice-item"><input type="checkbox" name="collect[]" value="phone" /> Phone number</label>
+            <label class="choice-item"><input type="checkbox" name="collect[]" value="email" /> Email address</label>
+            <label class="choice-item"><input type="checkbox" name="collect[]" value="service_needed" /> What service they need</label>
+            <label class="choice-item"><input type="checkbox" name="collect[]" value="location" /> Their location / address</label>
+            <label class="choice-item"><input type="checkbox" name="collect[]" value="budget" /> Budget or price range</label>
+            <label class="choice-item"><input type="checkbox" name="collect[]" value="urgency" /> How soon they need help (urgency)</label>
+            <label class="choice-item"><input type="checkbox" name="collect[]" value="referral_source" /> How they heard about you</label>
+            <label class="choice-item"><input type="checkbox" name="collect[]" value="other" /> Other</label>
+          </div>
+          <input class="ft-input" type="text" name="collect_other" placeholder="If other, what else should it ask?" style="margin-top:10px;" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Qualifying Questions</label>
+          <p class="field-hint">What questions do YOU ask to figure out if someone's a good fit?</p>
+          <table class="ft-table" id="qual-table">
+            <thead><tr><th>Question to Ask</th><th>Why it matters</th></tr></thead>
+            <tbody>
+              <tr><td><textarea rows="1" name="qual_q1"></textarea></td><td><textarea rows="1" name="qual_why1"></textarea></td></tr>
+              <tr><td><textarea rows="1" name="qual_q2"></textarea></td><td><textarea rows="1" name="qual_why2"></textarea></td></tr>
+              <tr><td><textarea rows="1" name="qual_q3"></textarea></td><td><textarea rows="1" name="qual_why3"></textarea></td></tr>
+              <tr><td><textarea rows="1" name="qual_q4"></textarea></td><td><textarea rows="1" name="qual_why4"></textarea></td></tr>
+            </tbody>
+          </table>
+          <button type="button" class="btn-add-row" onclick="addTableRow('qual-table',2)">+ Add Question</button>
+        </div>
+        <div class="field-group">
+          <label class="field-label">When should the AI turn someone away or redirect them?</label>
+          <textarea class="ft-input" name="disqualifiers" rows="3" placeholder='e.g. "If they're outside the Houston area," "If they need commercial work — we only do residential," "If their budget is under $500"'></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">How should the AI handle people who don't qualify?</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="disqualify_action" value="politely_decline" /> Politely decline and end the conversation</label>
+            <label class="choice-item"><input type="radio" name="disqualify_action" value="refer" /> Refer them to someone else (specify below)</label>
+            <label class="choice-item"><input type="radio" name="disqualify_action" value="collect_future" /> Still collect their info for future follow-up</label>
+            <label class="choice-item"><input type="radio" name="disqualify_action" value="alt_service" /> Offer a different service that might fit</label>
+          </div>
+          <textarea class="ft-input" name="disqualify_detail" rows="2" placeholder="Details (referral name, alternative service, etc.)" style="margin-top:10px;"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 9: Objection Handling ════════════════════════════ -->
+    <div class="section-card" data-step="9">
+      <div class="card-header">
+        <div class="card-icon">💬</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 9</div>
+          <div class="card-title">Handling Objections</div>
+          <div class="card-desc">When people push back, what do YOU usually say? Teach the AI your best responses.</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <table class="ft-table">
+          <thead><tr><th style="width:35%;">When they say…</th><th>You usually say…</th></tr></thead>
+          <tbody>
+            <tr><td>"It's too expensive"</td><td><textarea rows="2" name="obj_expensive"></textarea></td></tr>
+            <tr><td>"I need to think about it"</td><td><textarea rows="2" name="obj_think"></textarea></td></tr>
+            <tr><td>"I'm just looking around / comparing"</td><td><textarea rows="2" name="obj_looking"></textarea></td></tr>
+            <tr><td>"I'm already working with someone"</td><td><textarea rows="2" name="obj_competitor"></textarea></td></tr>
+            <tr><td>"Can you just send me some info?"</td><td><textarea rows="2" name="obj_info"></textarea></td></tr>
+            <tr><td>"Not right now / maybe later"</td><td><textarea rows="2" name="obj_later"></textarea></td></tr>
+            <tr><td>"How do I know this will actually work?"</td><td><textarea rows="2" name="obj_proof"></textarea></td></tr>
+            <tr><td>"I've had a bad experience before"</td><td><textarea rows="2" name="obj_bad_exp"></textarea></td></tr>
+            <tr><td>Other common objection:</td><td><textarea rows="2" name="obj_other"></textarea></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 10: Differentiation ══════════════════════════════ -->
+    <div class="section-card" data-step="10">
+      <div class="card-header">
+        <div class="card-icon">🏆</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 10</div>
+          <div class="card-title">What Makes You Different?</div>
+          <div class="card-desc">Why should someone choose you over the competition?</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">List 3–5 things that set you apart <span class="req">*</span></label>
+          <p class="field-hint">Speed, quality, guarantees, certifications, experience, results, customer service, etc.</p>
+          <textarea class="ft-input" name="differentiators" rows="5" placeholder="- Same-day service available&#10;- 100% satisfaction guarantee&#10;- All technicians are licensed and background-checked&#10;- We show up on time or the visit is free"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Who are your main competitors?</label>
+          <textarea class="ft-input" name="competitors" rows="2" placeholder="Names of businesses you compete with most often"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">If someone mentions a competitor, the AI should:</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="competitor_approach" value="acknowledge_pivot" /> Acknowledge them and pivot to our strengths</label>
+            <label class="choice-item"><input type="radio" name="competitor_approach" value="ask_experience" /> Ask what they liked/didn't like about that competitor</label>
+            <label class="choice-item"><input type="radio" name="competitor_approach" value="never_engage" /> Never engage in competitor talk</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 11: Booking & Appointments ═══════════════════════ -->
+    <div class="section-card" data-step="11">
+      <div class="card-header">
+        <div class="card-icon">📅</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 11</div>
+          <div class="card-title">Booking &amp; Appointments</div>
+          <div class="card-desc">How scheduling works for your business.</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">What types of appointments do you offer? <span class="req">*</span></label>
+          <table class="ft-table" id="appt-table">
+            <thead><tr><th>Appointment Type</th><th>Duration</th><th>Buffer Between Appts</th></tr></thead>
+            <tbody>
+              <tr><td><input type="text" name="appt1_type" placeholder="e.g. Free consultation" /></td><td><input type="text" name="appt1_duration" placeholder="e.g. 30 min" /></td><td><input type="text" name="appt1_buffer" placeholder="e.g. 15 min" /></td></tr>
+              <tr><td><input type="text" name="appt2_type" placeholder="e.g. Service call" /></td><td><input type="text" name="appt2_duration" placeholder="e.g. 1 hour" /></td><td><input type="text" name="appt2_buffer" placeholder="e.g. 30 min" /></td></tr>
+              <tr><td><input type="text" name="appt3_type" /></td><td><input type="text" name="appt3_duration" /></td><td><input type="text" name="appt3_buffer" /></td></tr>
+            </tbody>
+          </table>
+          <button type="button" class="btn-add-row" onclick="addTableRow('appt-table',3)">+ Add Appointment Type</button>
+        </div>
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">How far out can people book?</label>
+            <input class="ft-input" type="text" name="booking_advance" placeholder="e.g. Up to 2 weeks out" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Minimum notice needed?</label>
+            <input class="ft-input" type="text" name="booking_min_notice" placeholder="e.g. At least 24 hours" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Max appointments per day?</label>
+            <input class="ft-input" type="text" name="booking_max_per_day" placeholder="e.g. 8" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Preferred time slots?</label>
+            <input class="ft-input" type="text" name="booking_preferred_times" placeholder="e.g. Morning slots preferred" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Should the AI book directly or check with you first?</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="booking_auth" value="direct" /> Book directly — no approval needed</label>
+            <label class="choice-item"><input type="radio" name="booking_auth" value="notify" /> Book directly but notify me</label>
+            <label class="choice-item"><input type="radio" name="booking_auth" value="approval" /> Get my approval first</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">After booking, the AI should: <span class="req">*</span> (Check all that apply)</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="checkbox" name="post_booking[]" value="confirmation" /> Send a confirmation message with appointment details</label>
+            <label class="choice-item"><input type="checkbox" name="post_booking[]" value="reminder_24h" /> Send a reminder 24 hours before</label>
+            <label class="choice-item"><input type="checkbox" name="post_booking[]" value="reminder_1h" /> Send a reminder 1 hour before</label>
+            <label class="choice-item"><input type="checkbox" name="post_booking[]" value="pre_instructions" /> Send pre-appointment instructions</label>
+            <label class="choice-item"><input type="checkbox" name="post_booking[]" value="directions" /> Send directions or parking info</label>
+          </div>
+          <textarea class="ft-input" name="pre_appt_instructions" rows="2" placeholder="Pre-appointment instructions (if applicable): What should people know before their appointment?" style="margin-top:10px;"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 12: FAQs ══════════════════════════════════════════ -->
+    <div class="section-card" data-step="12">
+      <div class="card-header">
+        <div class="card-icon">❓</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 12</div>
+          <div class="card-title">FAQs — Frequently Asked Questions</div>
+          <div class="card-desc">What do people ask you all the time? Give us at least 10. More = better AI.</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="info-box"><strong>Pro tip:</strong> This directly reduces the number of conversations that need a human. The more FAQs you add, the smarter your AI will be from day one.</div>
+        <table class="ft-table" id="faq-table">
+          <thead><tr><th style="width:40%;">Question customers ask</th><th>Your answer</th></tr></thead>
+          <tbody>
+            <tr><td><textarea rows="2" name="faq_q1"></textarea></td><td><textarea rows="2" name="faq_a1"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="faq_q2"></textarea></td><td><textarea rows="2" name="faq_a2"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="faq_q3"></textarea></td><td><textarea rows="2" name="faq_a3"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="faq_q4"></textarea></td><td><textarea rows="2" name="faq_a4"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="faq_q5"></textarea></td><td><textarea rows="2" name="faq_a5"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="faq_q6"></textarea></td><td><textarea rows="2" name="faq_a6"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="faq_q7"></textarea></td><td><textarea rows="2" name="faq_a7"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="faq_q8"></textarea></td><td><textarea rows="2" name="faq_a8"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="faq_q9"></textarea></td><td><textarea rows="2" name="faq_a9"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="faq_q10"></textarea></td><td><textarea rows="2" name="faq_a10"></textarea></td></tr>
+          </tbody>
+        </table>
+        <button type="button" class="btn-add-row" onclick="addFaqRow()">+ Add FAQ</button>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 13: Escalation ════════════════════════════════════ -->
+    <div class="section-card" data-step="13">
+      <div class="card-header">
+        <div class="card-icon">🚨</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 13</div>
+          <div class="card-title">When Should the AI Get a Human?</div>
+          <div class="card-desc">There will be situations where the AI should hand off to you or your team.</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">The AI should get a human involved when: <span class="req">*</span></label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="checkbox" name="escalate[]" value="asks_human" /> Someone asks to speak with a real person</label>
+            <label class="choice-item"><input type="checkbox" name="escalate[]" value="upset" /> Someone is upset or frustrated</label>
+            <label class="choice-item"><input type="checkbox" name="escalate[]" value="complaint" /> There's a complaint or refund request</label>
+            <label class="choice-item"><input type="checkbox" name="escalate[]" value="cant_answer" /> The AI can't answer a question after trying</label>
+            <label class="choice-item"><input type="checkbox" name="escalate[]" value="existing_customer" /> It's an existing customer with an account-specific issue</label>
+            <label class="choice-item"><input type="checkbox" name="escalate[]" value="other" /> Other (describe below)</label>
+          </div>
+          <textarea class="ft-input" name="escalate_other" rows="2" placeholder="Any other situations where a human should take over..." style="margin-top:10px;"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Should the AI try to help a couple more times before escalating, or escalate right away?</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="escalation_style" value="try_first" /> Try to resolve it 1–2 more times first</label>
+            <label class="choice-item"><input type="radio" name="escalation_style" value="immediate" /> Escalate immediately when triggered</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Who should handle escalations? <span class="req">*</span></label>
+          <table class="ft-table" id="escalation-table">
+            <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Email</th></tr></thead>
+            <tbody>
+              <tr><td><input type="text" name="esc1_name" /></td><td><input type="text" name="esc1_role" placeholder="e.g. Owner, Office Manager" /></td><td><input type="text" name="esc1_phone" /></td><td><input type="text" name="esc1_email" /></td></tr>
+              <tr><td><input type="text" name="esc2_name" /></td><td><input type="text" name="esc2_role" /></td><td><input type="text" name="esc2_phone" /></td><td><input type="text" name="esc2_email" /></td></tr>
+            </tbody>
+          </table>
+          <button type="button" class="btn-add-row" onclick="addTableRow('escalation-table',4)">+ Add Person</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 14: Follow-Ups ════════════════════════════════════ -->
+    <div class="section-card" data-step="14">
+      <div class="card-header">
+        <div class="card-icon">🔁</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 14</div>
+          <div class="card-title">Follow-Ups</div>
+          <div class="card-desc">When a lead goes quiet, what should the AI do?</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">If someone stops responding, should the AI follow up?</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="followup" value="yes" /> Yes — automatically follow up</label>
+            <label class="choice-item"><input type="radio" name="followup" value="no" /> No — never follow up automatically</label>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">First follow-up after:</label>
+            <input class="ft-input" type="text" name="followup_first" placeholder="e.g. 2 hours, 1 day" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Second follow-up after:</label>
+            <input class="ft-input" type="text" name="followup_second" placeholder="e.g. 2 days" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Max number of follow-ups:</label>
+            <input class="ft-input" type="text" name="followup_max" placeholder="e.g. 3" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Stop following up after:</label>
+            <input class="ft-input" type="text" name="followup_stop" placeholder="e.g. 7 days" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Follow-up tone:</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="followup_tone" value="casual" /> Casual check-in ("Hey, just circling back...")</label>
+            <label class="choice-item"><input type="radio" name="followup_tone" value="value_add" /> Value-add (share a helpful tip or resource)</label>
+            <label class="choice-item"><input type="radio" name="followup_tone" value="urgency" /> Urgency ("Spots are filling up...")</label>
+            <label class="choice-item"><input type="radio" name="followup_tone" value="reminder" /> Simple reminder ("Did you still want to book?")</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 15: Current Leads ════════════════════════════════ -->
+    <div class="section-card" data-step="15">
+      <div class="card-header">
+        <div class="card-icon">📊</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 15</div>
+          <div class="card-title">Your Current Leads</div>
+          <div class="card-desc">Helps us set up your system properly and measure the improvement.</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Roughly how many leads/inquiries do you get per month? <span class="req">*</span></label>
+            <input class="ft-input" type="text" name="monthly_leads" placeholder="e.g. 50, 100, 200+" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">How fast do you usually respond to a new lead right now?</label>
+            <input class="ft-input" type="text" name="current_response_time" placeholder="e.g. Within an hour, same day, sometimes next day..." />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Where do most of your leads come from? <span class="req">*</span></label>
+          <div class="choice-group cols-2">
+            <label class="choice-item"><input type="checkbox" name="lead_sources[]" value="google_seo" /> Google / SEO</label>
+            <label class="choice-item"><input type="checkbox" name="lead_sources[]" value="google_ads" /> Google Ads</label>
+            <label class="choice-item"><input type="checkbox" name="lead_sources[]" value="fb_ig_ads" /> Facebook / Instagram Ads</label>
+            <label class="choice-item"><input type="checkbox" name="lead_sources[]" value="social_organic" /> Social media (organic)</label>
+            <label class="choice-item"><input type="checkbox" name="lead_sources[]" value="referrals" /> Referrals / word of mouth</label>
+            <label class="choice-item"><input type="checkbox" name="lead_sources[]" value="yelp_directory" /> Yelp / directory listings</label>
+            <label class="choice-item"><input type="checkbox" name="lead_sources[]" value="other" /> Other</label>
+          </div>
+          <input class="ft-input" type="text" name="lead_sources_other" placeholder="If other, where?" style="margin-top:10px;" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Do you know your current booking/conversion rate?</label>
+          <p class="field-hint">e.g. "About 2 out of 10 leads actually book" or "I honestly have no idea" — both are fine</p>
+          <textarea class="ft-input" name="conversion_rate" rows="2" placeholder="Your best guess..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 16: Rules & Guardrails ═══════════════════════════ -->
+    <div class="section-card" data-step="16">
+      <div class="card-header">
+        <div class="card-icon">🛡️</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 16</div>
+          <div class="card-title">Rules &amp; Guardrails</div>
+          <div class="card-desc">Things the AI should never say, do, or promise.</div>
+        </div>
+        <span class="req-badge">Required</span>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">What should the AI NEVER say or do? <span class="req">*</span></label>
+          <p class="field-hint">Be specific. e.g. "Never guarantee results," "Never diagnose a medical condition," "Never bad-mouth competitors by name"</p>
+          <textarea class="ft-input" name="forbidden_actions" rows="4" placeholder="List anything that's off-limits..."></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Are there any legal or regulatory rules in your industry the AI needs to follow?</label>
+          <p class="field-hint">e.g. HIPAA for healthcare, disclaimers for legal services, licensing disclosures. If unsure, just tell us your industry and we'll research it.</p>
+          <textarea class="ft-input" name="compliance_rules" rows="3" placeholder="Any compliance requirements..."></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">If someone reports an emergency during a conversation, the AI should:</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="emergency_action" value="call_911" /> Tell them to call 911</label>
+            <label class="choice-item"><input type="radio" name="emergency_action" value="emergency_number" /> Give them your emergency number (specify below)</label>
+            <label class="choice-item"><input type="radio" name="emergency_action" value="notify_team" /> Immediately notify a team member (specify below)</label>
+          </div>
+          <input class="ft-input" type="text" name="emergency_detail" placeholder="Emergency number or team member to notify" style="margin-top:10px;" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 17: Common Scenarios ════════════════════════════ -->
+    <div class="section-card" data-step="17">
+      <div class="card-header">
+        <div class="card-icon">🎬</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 17</div>
+          <div class="card-title">Common Scenarios</div>
+          <div class="card-desc">Walk us through situations that come up a lot. The more you share, the smarter your AI will be.</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <table class="ft-table" id="scenarios-table">
+          <thead><tr><th style="width:40%;">Customer says or does…</th><th>AI should…</th></tr></thead>
+          <tbody>
+            <tr><td><textarea rows="2" name="sc1_trigger" placeholder='"I have a leak and water is everywhere"'></textarea></td><td><textarea rows="2" name="sc1_response" placeholder='"Ask for their address, reassure them, and try to book an emergency visit today"'></textarea></td></tr>
+            <tr><td><textarea rows="2" name="sc2_trigger"></textarea></td><td><textarea rows="2" name="sc2_response"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="sc3_trigger"></textarea></td><td><textarea rows="2" name="sc3_response"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="sc4_trigger"></textarea></td><td><textarea rows="2" name="sc4_response"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="sc5_trigger"></textarea></td><td><textarea rows="2" name="sc5_response"></textarea></td></tr>
+            <tr><td><textarea rows="2" name="sc6_trigger"></textarea></td><td><textarea rows="2" name="sc6_response"></textarea></td></tr>
+          </tbody>
+        </table>
+        <button type="button" class="btn-add-row" onclick="addTableRow('scenarios-table',2)">+ Add Scenario</button>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 18: Supporting Materials ════════════════════════ -->
+    <div class="section-card" data-step="18">
+      <div class="card-header">
+        <div class="card-icon">📎</div>
+        <div class="card-title-wrap">
+          <div class="card-num">Section 18</div>
+          <div class="card-title">Supporting Materials</div>
+          <div class="card-desc">The better material you give us, the better your AI performs.</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label class="field-label">Please indicate which documents you have available to share:</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="checkbox" name="materials[]" value="sales_scripts" /> Sales scripts or call scripts you currently use</label>
+            <label class="choice-item"><input type="checkbox" name="materials[]" value="service_descriptions" /> Service descriptions or brochures</label>
+            <label class="choice-item"><input type="checkbox" name="materials[]" value="pricing_sheets" /> Pricing sheets or rate cards</label>
+            <label class="choice-item"><input type="checkbox" name="materials[]" value="handbook" /> Employee handbook or SOPs</label>
+            <label class="choice-item"><input type="checkbox" name="materials[]" value="chatbot_scripts" /> Existing chatbot scripts (if upgrading from another system)</label>
+            <label class="choice-item"><input type="checkbox" name="materials[]" value="vsl_script" /> Video sales letter (VSL) script</label>
+            <label class="choice-item"><input type="checkbox" name="materials[]" value="intake_forms" /> Client intake forms you currently use</label>
+            <label class="choice-item"><input type="checkbox" name="materials[]" value="other_docs" /> Any other relevant documents</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">How will you send these?</label>
+          <div class="choice-group">
+            <label class="choice-item"><input type="radio" name="materials_delivery" value="email" /> I'll email them</label>
+            <label class="choice-item"><input type="radio" name="materials_delivery" value="drive_link" /> I'll share a Google Drive / Dropbox link</label>
+            <label class="choice-item"><input type="radio" name="materials_delivery" value="strategy_call" /> I'll bring them to the strategy call</label>
+            <label class="choice-item"><input type="radio" name="materials_delivery" value="none" /> I don't have any of these</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Electronic Signature (Full Name) <span class="req">*</span></label>
+          <input class="ft-input" type="text" name="signature" placeholder="Type your full name to confirm submission" required />
+          <p class="field-hint" style="margin-top:6px;">By submitting, you confirm all information is accurate and authorize FlowTier to begin building your AI Front Office.</p>
+        </div>
+        <div class="error-banner" id="error-banner-bottom"></div>
+      </div>
+    </div>
+
+    <!-- ═══ NAV BUTTONS ════════════════════════════════════════════ -->
+    <div class="nav-bar">
+      <button type="button" class="btn btn-prev" id="btn-prev" onclick="navigate(-1)" style="display:none;">← Back</button>
+      <div></div>
+      <button type="button" class="btn btn-next" id="btn-next" onclick="navigate(1)">Continue →</button>
+      <button type="submit" class="btn btn-submit" id="btn-submit" style="display:none;">Submit &amp; Schedule Kickoff →</button>
+    </div>
+  </form>
+</div>
+
+<!-- ══ SUCCESS / CALENDAR ══════════════════════════════════════════ -->
+<div id="success-screen">
+  <div class="success-header">
+    <div class="success-icon">✅</div>
+    <h2>You're all set, <em id="success-name">there</em>!</h2>
+    <p>Your onboarding questionnaire has been submitted. Now let's schedule your <strong style="color:var(--text);">Kickoff Strategy Call</strong> — pick a date and time that works for you.</p>
+  </div>
+
+  <div class="calendar-card">
+    <div class="calendar-card-inner">
+      <div class="cal-header">
+        <h3>Schedule Your Kickoff Call</h3>
+        <p>30 minutes · Google Meet · All times in Eastern Time (ET)</p>
+      </div>
+      <div class="cal-body">
+        <!-- Left: Calendar -->
+        <div class="cal-left">
+          <div class="cal-month-nav">
+            <button type="button" id="cal-prev-btn" onclick="calPrevMonth()">&#8249;</button>
+            <span class="cal-month-name" id="cal-month-name"></span>
+            <button type="button" id="cal-next-btn" onclick="calNextMonth()">&#8250;</button>
+          </div>
+          <div class="cal-day-labels">
+            <div class="cal-day-label">Su</div>
+            <div class="cal-day-label">Mo</div>
+            <div class="cal-day-label">Tu</div>
+            <div class="cal-day-label">We</div>
+            <div class="cal-day-label">Th</div>
+            <div class="cal-day-label">Fr</div>
+            <div class="cal-day-label">Sa</div>
+          </div>
+          <div class="cal-days" id="cal-days"></div>
+        </div>
+        <!-- Right: Time Slots -->
+        <div class="cal-right">
+          <h4 id="cal-date-label">Select a date</h4>
+          <div class="slots-list" id="slots-list">
+            <div class="slots-empty">Choose a date to see available times</div>
+          </div>
+        </div>
+      </div>
+      <div class="cal-footer">
+        <button class="btn-book" id="btn-book" disabled onclick="bookSlot()">Confirm &amp; Book My Kickoff Call</button>
+        <div class="cal-tz">All times shown in Eastern Time (ET)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BOOKING CONFIRMED ════════════════════════════════════════════ -->
+<div id="booking-confirmed">
+  <div class="success-header">
+    <div class="success-icon">🎉</div>
+    <h2>Call Booked, <em id="confirmed-name">there</em>!</h2>
+    <p>Your kickoff call is confirmed. Check your email for the invite and Google Meet link.</p>
+  </div>
+  <div class="confirmed-card">
+    <div class="confirmed-inner">
+      <div class="confirmed-row">
+        <span class="ci">📅</span>
+        <div>
+          <strong id="conf-date">—</strong>
+          <span id="conf-time">—</span>
+        </div>
+      </div>
+      <div class="confirmed-row">
+        <span class="ci">⏱️</span>
+        <div>
+          <strong>30 minutes</strong>
+          <span>Strategy &amp; Kickoff Call</span>
+        </div>
+      </div>
+      <div class="confirmed-row" id="conf-meet-row" style="display:none;">
+        <span class="ci">📹</span>
+        <div>
+          <strong>Google Meet</strong>
+          <a id="conf-meet-link" href="#" target="_blank" rel="noopener">—</a>
+        </div>
+      </div>
+      <div class="confirmed-row">
+        <span class="ci">✉️</span>
+        <div>
+          <strong>Confirmation sent</strong>
+          <span id="conf-email">Check your inbox for details</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCRIPT ═══════════════════════════════════════════════════════ -->
+<script>
+  // ── Config ──────────────────────────────────────────────────────
+  // Intake ID is the last segment of the URL path: /intake/FT26I01
+  const INTAKE_ID        = window.location.pathname.split('/').filter(Boolean).pop();
+  const CALENDAR_WEBHOOK = 'https://n8n.flowtier.io/webhook/kickoff_call';
+  const CALENDAR_API     = 'https://googlecalendarformintegration-production.up.railway.app';
+
+  // Load intake metadata on page load to pre-fill known contact fields
+  let intakeMeta = {};
+  (async () => {
+    try {
+      const r = await fetch('/api/intake/' + INTAKE_ID);
+      if (r.ok) {
+        intakeMeta = await r.json();
+        if (intakeMeta.client_name) {
+          const el = document.querySelector('[name="name"]');
+          if (el && !el.value) el.value = intakeMeta.client_name;
+        }
+        if (intakeMeta.client_email) {
+          const el = document.querySelector('[name="email"]');
+          if (el && !el.value) el.value = intakeMeta.client_email;
+        }
+        if (intakeMeta.client_phone) {
+          const el = document.querySelector('[name="phone"]');
+          if (el && !el.value) el.value = intakeMeta.client_phone;
+        }
+        if (intakeMeta.client_company) {
+          const el = document.querySelector('[name="business_name"]');
+          if (el && !el.value) el.value = intakeMeta.client_company;
+        }
+      }
+    } catch (_) {}
+  })();
+
+  // ── Step State ──────────────────────────────────────────────────
+  const cards = document.querySelectorAll('.section-card');
+  const TOTAL = cards.length;
+  let current = 0;
+  let submittedFormData = {};
+
+  // ── Tab Labels ──────────────────────────────────────────────────
+  const TAB_LABELS = [
+    'Contact Info',
+    'Primary Goal',
+    'Your Business',
+    'Current Setup',
+    'Channels',
+    'Voice Agent',
+    'AI Personality',
+    'Credibility',
+    'Lead Qualification',
+    'Objections',
+    'Differentiation',
+    'Booking',
+    'FAQs',
+    'Escalation',
+    'Follow-Ups',
+    'Current Leads',
+    'Rules',
+    'Scenarios',
+    'Materials'
+  ];
+
+  // ── Build Tabs ──────────────────────────────────────────────────
+  const tabsWrap = document.getElementById('step-tabs');
+  for (let i = 0; i < TOTAL; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'step-tab' + (i === 0 ? ' active' : '');
+    btn.innerHTML = `<span class="tab-num">${i + 1}</span><span class="tab-label">${TAB_LABELS[i] || 'Step ' + (i+1)}</span>`;
+    btn.addEventListener('click', () => goTo(i));
+    tabsWrap.appendChild(btn);
+  }
+
+  // Track which steps have been visited and whether they had warnings
+  const stepWarnings = new Array(TOTAL).fill(false);
+
+  // Check if a step card has any empty required fields
+  function stepHasWarning(idx) {
+    const card = cards[idx];
+    let hasWarning = false;
+    card.querySelectorAll('[required], .field-label .req').forEach(el => {
+      // For .req spans, find the associated input/textarea
+      if (el.classList && el.classList.contains('req')) {
+        const label = el.closest('.field-label');
+        if (!label) return;
+        const fieldGroup = label.closest('.field-group') || label.parentElement;
+        const input = fieldGroup ? fieldGroup.querySelector('input:not([type=radio]):not([type=checkbox]), textarea, select') : null;
+        if (input && !input.value.trim()) hasWarning = true;
+        // Also check radio groups in this field-group
+        const radioGroup = fieldGroup ? fieldGroup.querySelector('.choice-group') : null;
+        if (radioGroup) {
+          const radios = radioGroup.querySelectorAll('input[type=radio]');
+          if (radios.length > 0 && !Array.from(radios).some(r => r.checked)) hasWarning = true;
+        }
+      } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+        if (!el.value.trim()) hasWarning = true;
+      }
+    });
+    return hasWarning;
+  }
+
+  function updateDots() {
+    document.querySelectorAll('.step-tab').forEach((btn, i) => {
+      let cls = 'step-tab';
+      if (i === current) {
+        cls += ' active';
+      } else if (i < current || stepWarnings[i] === 'visited') {
+        // Only show done/warn for steps we've moved past
+        if (stepWarnings[i] === true) cls += ' warn';
+        else cls += ' done';
+      }
+      btn.className = cls;
+    });
+    // Scroll active tab into view
+    const activeTab = tabsWrap.querySelectorAll('.step-tab')[current];
+    if (activeTab) activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
+
+  function updateProgress() {
+    const pct = Math.round(((current + 1) / TOTAL) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = 'Step ' + (current + 1) + ' of ' + TOTAL;
+    document.getElementById('progress-pct').textContent = pct + '%';
+  }
+
+  function updateNav() {
+    const isLast = current === TOTAL - 1;
+    document.getElementById('btn-prev').style.display = current > 0 ? 'inline-flex' : 'none';
+    document.getElementById('btn-next').style.display = isLast ? 'none' : 'inline-flex';
+    document.getElementById('btn-submit').style.display = isLast ? 'inline-flex' : 'none';
+  }
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= TOTAL) return;
+    // Before leaving the current step, check for warnings
+    stepWarnings[current] = stepHasWarning(current) ? true : 'visited';
+    cards[current].classList.remove('active');
+    current = idx;
+    cards[current].classList.add('active');
+    updateDots();
+    updateProgress();
+    updateNav();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function navigate(dir) { goTo(current + dir); }
+
+  // Highlight selected choices
+  document.querySelectorAll('.choice-item input').forEach(input => {
+    input.addEventListener('change', () => {
+      const group = input.closest('.choice-group');
+      if (!group) return;
+      if (input.type === 'radio') {
+        group.querySelectorAll('.choice-item').forEach(item => item.classList.remove('selected'));
+      }
+      if (input.checked) input.closest('.choice-item').classList.add('selected');
+      else input.closest('.choice-item').classList.remove('selected');
+    });
+  });
+
+  updateProgress();
+  updateNav();
+
+  // ── Dynamic Table Rows ──────────────────────────────────────────
+  function addTableRow(tableId, cols) {
+    const tbody = document.querySelector('#' + tableId + ' tbody');
+    const tr = document.createElement('tr');
+    for (let c = 0; c < cols; c++) {
+      const td = document.createElement('td');
+      const ta = document.createElement('textarea');
+      ta.rows = 1;
+      td.appendChild(ta);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+
+  let faqCount = 10;
+  function addFaqRow() {
+    faqCount++;
+    const tbody = document.querySelector('#faq-table tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><textarea rows="2" name="faq_q${faqCount}"></textarea></td><td><textarea rows="2" name="faq_a${faqCount}"></textarea></td>`;
+    tbody.appendChild(tr);
+  }
+
+  // ── Collect Form Data ───────────────────────────────────────────
+  function collectData() {
+    const form = document.getElementById('onboarding-form');
+    const data = {};
+    for (const el of form.elements) {
+      if (!el.name) continue;
+      if (el.type === 'checkbox') {
+        if (el.name.endsWith('[]')) {
+          const key = el.name.slice(0, -2);
+          if (!data[key]) data[key] = [];
+          if (el.checked) data[key].push(el.value);
+        } else {
+          data[el.name] = el.checked;
+        }
+      } else if (el.type === 'radio') {
+        if (el.checked) data[el.name] = el.value;
+      } else if (el.value.trim() !== '') {
+        data[el.name] = el.value.trim();
+      }
+    }
+    // URL params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('contact_id')) data.contact_id = params.get('contact_id');
+    if (params.get('folder_id'))  data.folder_id  = params.get('folder_id');
+    data._submitted_at = new Date().toISOString();
+    return data;
+  }
+
+  // ── Form Submit ─────────────────────────────────────────────────
+  document.getElementById('onboarding-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const sig = document.querySelector('[name="signature"]').value.trim();
+    const errEl = document.getElementById('error-banner-bottom');
+    if (!sig) {
+      errEl.style.display = 'block';
+      errEl.textContent = 'Please type your full name as an electronic signature before submitting.';
+      return;
+    }
+    errEl.style.display = 'none';
+
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Submitting…';
+
+    submittedFormData = collectData();
+    // Attach intake metadata so the backend can route correctly
+    submittedFormData.ghl_contact_id = intakeMeta.ghl_contact_id || '';
+    submittedFormData.intake_id      = INTAKE_ID;
+
+    try {
+      await fetch('/api/intake/' + INTAKE_ID + '/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submittedFormData)
+      });
+    } catch (_) { /* fire and forget — don't block the UX */ }
+
+    // Show success + calendar
+    document.getElementById('form-area').style.display = 'none';
+    document.getElementById('progress-wrap').style.display = 'none';
+    document.getElementById('success-screen').style.display = 'block';
+    document.getElementById('success-name').textContent = submittedFormData.name || 'there';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    calRender();
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // CALENDAR WIDGET
+  // ══════════════════════════════════════════════════════════════
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const today = new Date();
+  const todayStr = fmtDate(today);
+  let calYear  = today.getFullYear();
+  let calMonth = today.getMonth();
+  let selectedDate = '';
+  let selectedSlot = '';
+  let currentSlots = [];
+
+  function fmtDate(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
+  }
+
+  function formatDateDisplay(str) {
+    const [y,m,d] = str.split('-').map(Number);
+    return new Date(y, m-1, d).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  }
+
+  function isSelectable(year, month, day) {
+    const dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+    const dow = new Date(year, month, day).getDay();
+    return dow >= 1 && dow <= 5 && dateStr >= todayStr;
+  }
+
+  function calRender() {
+    document.getElementById('cal-month-name').textContent = monthNames[calMonth] + ' ' + calYear;
+    document.getElementById('cal-prev-btn').disabled =
+      calYear < today.getFullYear() ||
+      (calYear === today.getFullYear() && calMonth <= today.getMonth());
+
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const firstDay    = new Date(calYear, calMonth, 1).getDay();
+    const grid = document.getElementById('cal-days');
+    grid.innerHTML = '';
+
+    for (let i = 0; i < firstDay; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day empty';
+      grid.appendChild(el);
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      const el = document.createElement('div');
+      const selectable = isSelectable(calYear, calMonth, d);
+      el.className = 'cal-day' +
+        (!selectable ? ' disabled' : '') +
+        (dateStr === todayStr ? ' today' : '') +
+        (dateStr === selectedDate ? ' selected' : '');
+      el.textContent = d;
+      if (selectable) {
+        el.addEventListener('click', () => selectDate(dateStr));
+      }
+      grid.appendChild(el);
+    }
+  }
+
+  function calPrevMonth() {
+    if (calMonth === 0) { calYear--; calMonth = 11; }
+    else calMonth--;
+    selectedDate = '';
+    selectedSlot = '';
+    calRender();
+    renderSlots([]);
+  }
+
+  function calNextMonth() {
+    if (calMonth === 11) { calYear++; calMonth = 0; }
+    else calMonth++;
+    selectedDate = '';
+    selectedSlot = '';
+    calRender();
+    renderSlots([]);
+  }
+
+  async function selectDate(dateStr) {
+    selectedDate = dateStr;
+    selectedSlot = '';
+    calRender();
+    document.getElementById('cal-date-label').textContent = formatDateDisplay(dateStr);
+    document.getElementById('btn-book').disabled = true;
+
+    const list = document.getElementById('slots-list');
+    list.innerHTML = '<div class="slots-loading"><span class="spinner"></span> Loading available times…</div>';
+
+    try {
+      const res = await fetch(`${CALENDAR_API}/api/calendar/slots?date=${dateStr}`);
+      const data = await res.json();
+      currentSlots = data.slots || [];
+      renderSlots(currentSlots);
+    } catch (_) {
+      list.innerHTML = '<div class="slots-empty">Could not load slots. Please try another date.</div>';
+    }
+  }
+
+  function renderSlots(slots) {
+    const list = document.getElementById('slots-list');
+    if (!slots.length) {
+      list.innerHTML = '<div class="slots-empty">No available times for this date. Try another day.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    slots.forEach(slot => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot-btn' + (slot.startTime === selectedSlot ? ' selected' : '');
+      btn.innerHTML = `<span>${slot.display}</span><span class="slot-duration">30 min</span>`;
+      btn.addEventListener('click', () => {
+        selectedSlot = slot.startTime;
+        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        document.getElementById('btn-book').disabled = false;
+      });
+      list.appendChild(btn);
+    });
+  }
+
+  async function bookSlot() {
+    if (!selectedDate || !selectedSlot) return;
+    const btn = document.getElementById('btn-book');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="border-color:rgba(10,10,10,.3);border-top-color:#0a0a0a;"></span> Booking…';
+
+    const payload = {
+      name:        submittedFormData.name        || '',
+      email:       submittedFormData.email       || '',
+      phone:       submittedFormData.phone       || '',
+      companyName: submittedFormData.business_name || '',
+      industry:    submittedFormData.business_type || '',
+      date:        selectedDate,
+      startTime:   selectedSlot,
+      contact_id:  submittedFormData.contact_id  || '',
+      folder_id:   submittedFormData.folder_id   || ''
+    };
+
+    try {
+      const res = await fetch(`${CALENDAR_API}/api/calendar/book`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        // Fire kickoff webhook (fire and forget)
+        const webhookPayload = {
+          ...payload,
+          meetLink:   result.meetLink,
+          eventLink:  result.eventLink,
+          eventId:    result.eventId,
+          meetingDate: result.meeting?.date,
+          meetingTime: result.meeting?.startTime,
+          meetingDuration: result.meeting?.duration,
+          meetingTimezone: result.meeting?.timezone,
+          timestamp:  new Date().toISOString()
+        };
+        fetch(CALENDAR_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(webhookPayload)
+        }).catch(() => {});
+
+        // Show confirmation
+        document.getElementById('success-screen').style.display = 'none';
+        document.getElementById('booking-confirmed').style.display = 'block';
+        document.getElementById('confirmed-name').textContent = submittedFormData.name || 'there';
+        document.getElementById('conf-date').textContent = formatDateDisplay(result.meeting?.date || selectedDate);
+        document.getElementById('conf-time').textContent = (result.meeting?.startTime || '') + ' ET · ' + (result.meeting?.duration || '30 min');
+        document.getElementById('conf-email').textContent = 'Check ' + (submittedFormData.email || 'your inbox') + ' for details';
+        if (result.meetLink) {
+          document.getElementById('conf-meet-row').style.display = 'flex';
+          const link = document.getElementById('conf-meet-link');
+          link.href = result.meetLink;
+          link.textContent = result.meetLink;
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Confirm & Book My Kickoff Call';
+        alert(result.error || 'Booking failed. Please try again.');
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Confirm & Book My Kickoff Call';
+      alert('Something went wrong. Please try again.');
+    }
+  }
+</script>
+</body>
+</html>

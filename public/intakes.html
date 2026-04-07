@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intake Forms — FlowTier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/index.css">
+  <style>
+    .intake-status-badge { display:inline-block; padding:3px 10px; border-radius:99px; font-size:.72rem; font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
+    .intake-pending  { background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.25); }
+    .intake-submitted { background:rgba(124,212,100,.12); color:#7cd464; border:1px solid rgba(124,212,100,.25); }
+    .intake-viewed   { background:rgba(99,179,237,.12); color:#63b3ed; border:1px solid rgba(99,179,237,.25); }
+    .copy-link-btn   { background:none; border:1px solid var(--color-border,rgba(255,255,255,.1)); border-radius:6px; padding:4px 10px; font-size:.75rem; color:var(--color-text-muted,#94a3b8); cursor:pointer; transition:all .2s; }
+    .copy-link-btn:hover { border-color:rgba(124,212,100,.4); color:#7cd464; }
+    .copy-link-btn.copied { border-color:rgba(124,212,100,.5); color:#7cd464; }
+    .view-submission-btn { background:none; border:1px solid var(--color-border,rgba(255,255,255,.1)); border-radius:6px; padding:4px 10px; font-size:.75rem; color:var(--color-text-muted,#94a3b8); cursor:pointer; transition:all .2s; }
+    .view-submission-btn:hover { border-color:rgba(124,212,100,.4); color:#7cd464; }
+    /* Submission viewer modal */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.82); backdrop-filter:blur(4px); z-index:1000; align-items:center; justify-content:center; padding:20px; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:#1a1a1a; border:1px solid rgba(255,255,255,.1); border-radius:14px; max-width:780px; width:100%; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; }
+    .modal-header { padding:20px 24px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-between; }
+    .modal-header h2 { font-size:1.1rem; font-weight:700; }
+    .modal-close { background:none; border:none; color:#94a3b8; font-size:1.4rem; cursor:pointer; padding:4px 8px; border-radius:6px; transition:color .2s; }
+    .modal-close:hover { color:#f1f5f9; }
+    .modal-body { padding:24px; overflow-y:auto; flex:1; }
+    .submission-section { margin-bottom:24px; }
+    .submission-section h3 { font-size:.75rem; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:#7cd464; margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,.06); }
+    .submission-field { display:flex; gap:12px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.04); font-size:.83rem; }
+    .submission-field:last-child { border-bottom:none; }
+    .submission-key { color:#94a3b8; min-width:180px; flex-shrink:0; font-weight:500; }
+    .submission-val { color:#f1f5f9; word-break:break-word; }
+    .export-md-btn { background:rgba(124,212,100,.1); border:1px solid rgba(124,212,100,.25); color:#7cd464; border-radius:8px; padding:8px 18px; font-size:.82rem; font-weight:600; cursor:pointer; transition:all .2s; }
+    .export-md-btn:hover { background:rgba(124,212,100,.18); }
+  </style>
+</head>
+<body>
+  <div class="dashboard-page">
+
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div class="dashboard-header-left">
+        <img src="/static/images/logo.webp" alt="FlowTier" class="dashboard-logo">
+        <div>
+          <h1>Intake Forms</h1>
+          <p class="dashboard-subtitle">AI onboarding questionnaires sent to clients</p>
+        </div>
+      </div>
+      <div class="dashboard-header-right">
+        <a href="/dashboard" class="btn btn-secondary btn-sm">← Proposals</a>
+        <a href="/logout" class="btn btn-secondary btn-sm">Logout</a>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="dashboard-stats" id="intakeStats">
+      <div class="stat-card">
+        <div class="stat-number" id="statTotal">—</div>
+        <div class="stat-label">Total Sent</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number stat-pending" id="statPending">—</div>
+        <div class="stat-label">Awaiting Response</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number stat-signed" id="statSubmitted">—</div>
+        <div class="stat-label">Submitted</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="dashboard-filter-bar">
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all" onclick="filterIntakes('all', this)">All</button>
+        <button class="filter-tab" data-filter="pending" onclick="filterIntakes('pending', this)">Pending</button>
+        <button class="filter-tab" data-filter="submitted" onclick="filterIntakes('submitted', this)">Submitted</button>
+      </div>
+      <div class="filter-search">
+        <input type="text" id="searchInput" placeholder="Search by client name or company..." oninput="renderTable()">
+      </div>
+    </div>
+
+    <!-- Intakes Table -->
+    <div class="dashboard-table-wrap">
+      <table class="dashboard-table" id="intakesTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client</th>
+            <th>GHL Contact ID</th>
+            <th>Created</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="intakesBody">
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--color-text-muted);">Loading intake forms...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div class="dashboard-empty" id="emptyState" style="display:none;">
+      <div class="empty-icon">📋</div>
+      <h3>No intake forms yet</h3>
+      <p>Create an intake form from a lead in the Lead Manager.</p>
+    </div>
+
+  </div>
+
+  <!-- Submission Viewer Modal -->
+  <div class="modal-overlay" id="submissionModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modalTitle">Submission Details</h2>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="export-md-btn" id="exportMdBtn" onclick="exportMarkdown()">⬇ Export Markdown</button>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body" id="modalBody">Loading...</div>
+    </div>
+  </div>
+
+  <script>
+    var allIntakes = [];
+    var currentFilter = 'all';
+    var currentViewIntake = null;
+
+    var INTAKE_BASE_URL = window.location.origin + '/intake/';
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      var d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function formatDateTime(dateStr) {
+      if (!dateStr) return '—';
+      var d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) +
+        ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function getStatusBadge(status) {
+      var map = {
+        'pending':   '<span class="intake-status-badge intake-pending">Pending</span>',
+        'viewed':    '<span class="intake-status-badge intake-viewed">Viewed</span>',
+        'submitted': '<span class="intake-status-badge intake-submitted">Submitted</span>'
+      };
+      return map[status] || map['pending'];
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      var d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function loadIntakes() {
+      fetch('/api/intake')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          allIntakes = data.intakes || [];
+          updateStats();
+          renderTable();
+        })
+        .catch(function() {
+          document.getElementById('intakesBody').innerHTML =
+            '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ff5252;">Error loading intake forms.</td></tr>';
+        });
+    }
+
+    function updateStats() {
+      document.getElementById('statTotal').textContent = allIntakes.length;
+      document.getElementById('statPending').textContent = allIntakes.filter(function(i) { return i.status !== 'submitted'; }).length;
+      document.getElementById('statSubmitted').textContent = allIntakes.filter(function(i) { return i.status === 'submitted'; }).length;
+    }
+
+    function filterIntakes(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-tab').forEach(function(t) { t.classList.remove('active'); });
+      if (btn) btn.classList.add('active');
+      renderTable();
+    }
+
+    function renderTable() {
+      var filtered = allIntakes;
+      if (currentFilter !== 'all') {
+        filtered = allIntakes.filter(function(i) { return i.status === currentFilter; });
+      }
+      var searchVal = (document.getElementById('searchInput').value || '').toLowerCase();
+      if (searchVal) {
+        filtered = filtered.filter(function(i) {
+          return (i.client_name || '').toLowerCase().indexOf(searchVal) !== -1 ||
+                 (i.client_company || '').toLowerCase().indexOf(searchVal) !== -1 ||
+                 (i.intake_id || '').toLowerCase().indexOf(searchVal) !== -1;
+        });
+      }
+
+      var tbody = document.getElementById('intakesBody');
+      var empty = document.getElementById('emptyState');
+
+      if (allIntakes.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--color-text-muted);">No intake forms match your filter.</td></tr>';
+        return;
+      }
+
+      var html = '';
+      filtered.forEach(function(intake) {
+        var link = INTAKE_BASE_URL + encodeURIComponent(intake.intake_id);
+        html += '<tr>';
+        html += '<td><span class="proposal-id-badge">' + escapeHtml(intake.intake_id) + '</span></td>';
+        html += '<td><div class="client-cell"><strong>' + escapeHtml(intake.client_name || '—') + '</strong>';
+        if (intake.client_company) html += '<br><span class="client-company">' + escapeHtml(intake.client_company) + '</span>';
+        html += '</div></td>';
+        html += '<td><span style="font-size:.75rem;font-family:monospace;color:var(--color-text-muted);">' + escapeHtml(intake.ghl_contact_id || '—') + '</span></td>';
+        html += '<td>' + formatDate(intake.created_at) + '</td>';
+        html += '<td>' + getStatusBadge(intake.status) + '</td>';
+        html += '<td>' + (intake.submitted_at ? formatDateTime(intake.submitted_at) : '<span style="color:var(--color-text-muted);font-size:.8rem;">Not yet</span>') + '</td>';
+        html += '<td class="actions-cell">';
+        html += '<button class="copy-link-btn" onclick="copyLink(\'' + escapeHtml(link) + '\', this)" title="Copy intake link">🔗 Copy Link</button> ';
+        if (intake.status === 'submitted') {
+          html += '<button class="view-submission-btn" onclick="viewSubmission(\'' + escapeHtml(intake.intake_id) + '\')" title="View submission">👁 View</button> ';
+        }
+        html += '<button class="action-btn action-delete" title="Delete" onclick="deleteIntake(\'' + escapeHtml(intake.intake_id) + '\', this)">🗑</button>';
+        html += '</td>';
+        html += '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function copyLink(link, btn) {
+      navigator.clipboard.writeText(link).then(function() {
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(function() {
+          btn.textContent = '🔗 Copy Link';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    function viewSubmission(intakeId) {
+      document.getElementById('submissionModal').classList.add('open');
+      document.getElementById('modalTitle').textContent = 'Submission — ' + intakeId;
+      document.getElementById('modalBody').innerHTML = '<p style="color:#94a3b8;text-align:center;padding:40px;">Loading...</p>';
+      currentViewIntake = intakeId;
+
+      fetch('/api/intake/' + encodeURIComponent(intakeId))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          renderSubmission(data);
+        })
+        .catch(function() {
+          document.getElementById('modalBody').innerHTML = '<p style="color:#ff5252;text-align:center;padding:40px;">Error loading submission.</p>';
+        });
+    }
+
+    function renderSubmission(data) {
+      var submission = data.submission || {};
+      var meta = { 'Client Name': data.client_name, 'Company': data.client_company, 'Email': data.client_email, 'Phone': data.client_phone, 'GHL Contact ID': data.ghl_contact_id, 'Submitted At': data.submitted_at };
+
+      var html = '<div class="submission-section"><h3>Contact Info</h3>';
+      Object.keys(meta).forEach(function(k) {
+        if (meta[k]) html += '<div class="submission-field"><span class="submission-key">' + escapeHtml(k) + '</span><span class="submission-val">' + escapeHtml(String(meta[k])) + '</span></div>';
+      });
+      html += '</div>';
+
+      // Group submission fields into sections
+      var sectionMap = {
+        'Primary Goal': ['primary_goal','primary_goal_other','video_step','video_url','booking_link','website','checkout_link','reviews_link','other_links'],
+        'Your Business': ['business_type','years_in_business','main_service','other_services','service_area','team_size','business_hours','peak_season','business_name','website_2'],
+        'Current Setup': ['crm','crm_other','current_followup','current_followup_other','biggest_challenge','monthly_revenue','avg_ticket'],
+        'Channels': ['ch_sms','ch_chat','ch_ig','ch_fb','ch_wa','ch_email','ch_voice','channel_preferences'],
+        'Voice Agent': ['voice_agent','voice_gender','voice_style','ai_intro','transfer_triggers','recording','voice_other'],
+        'AI Personality': ['ai_name','tone','use_emojis','use_firstname','use_jargon','use_humor','voice_samples'],
+        'Credibility': ['founder_name','founder_bio','proof_points','awards','differentiators'],
+        'Lead Qualification': ['qualify_questions','disqualify_criteria'],
+        'Objections': ['objections'],
+        'Differentiation': ['vs_competitors','unique_value'],
+        'Booking': ['booking_system','booking_link_2','booking_max_per_day','booking_preferred_times','booking_auth','post_booking','pre_appt_instructions'],
+        'FAQs': Object.keys(submission).filter(function(k){ return k.startsWith('faq_'); }),
+        'Escalation': ['escalate','escalate_other','escalation_style'],
+        'Follow-Ups': ['followup','followup_first','followup_second','followup_max','followup_stop','followup_tone'],
+        'Current Leads': ['monthly_leads','current_response_time','lead_sources','lead_sources_other','conversion_rate'],
+        'Rules & Guardrails': ['forbidden_actions','compliance_rules','emergency_action','emergency_detail'],
+        'Common Scenarios': Object.keys(submission).filter(function(k){ return k.startsWith('sc'); }),
+        'Supporting Materials': ['materials','materials_delivery','signature']
+      };
+
+      Object.keys(sectionMap).forEach(function(section) {
+        var fields = sectionMap[section];
+        var hasData = fields.some(function(f) { return submission[f] !== undefined && submission[f] !== '' && submission[f] !== false; });
+        if (!hasData) return;
+        html += '<div class="submission-section"><h3>' + escapeHtml(section) + '</h3>';
+        fields.forEach(function(f) {
+          var val = submission[f];
+          if (val === undefined || val === '' || val === false) return;
+          var displayVal = Array.isArray(val) ? val.join(', ') : String(val);
+          var displayKey = f.replace(/_/g, ' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+          html += '<div class="submission-field"><span class="submission-key">' + escapeHtml(displayKey) + '</span><span class="submission-val">' + escapeHtml(displayVal) + '</span></div>';
+        });
+        html += '</div>';
+      });
+
+      document.getElementById('modalBody').innerHTML = html;
+    }
+
+    function closeModal() {
+      document.getElementById('submissionModal').classList.remove('open');
+      currentViewIntake = null;
+    }
+
+    function exportMarkdown() {
+      if (!currentViewIntake) return;
+      fetch('/api/intake/' + encodeURIComponent(currentViewIntake) + '/export-md')
+        .then(function(r) { return r.text(); })
+        .then(function(md) {
+          var blob = new Blob([md], { type: 'text/markdown' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = currentViewIntake + '-intake.md';
+          a.click();
+          URL.revokeObjectURL(url);
+        })
+        .catch(function() { alert('Error exporting markdown.'); });
+    }
+
+    function deleteIntake(intakeId, btn) {
+      if (!confirm('Delete this intake form? This cannot be undone.')) return;
+      var row = btn.closest('tr');
+      if (row) row.style.opacity = '0.5';
+      fetch('/api/intake/' + encodeURIComponent(intakeId), { method: 'DELETE' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            allIntakes = allIntakes.filter(function(i) { return i.intake_id !== intakeId; });
+            updateStats();
+            renderTable();
+          } else {
+            alert('Error: ' + (data.error || 'Unknown'));
+            if (row) row.style.opacity = '1';
+          }
+        })
+        .catch(function() {
+          alert('Error deleting intake form.');
+          if (row) row.style.opacity = '1';
+        });
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('submissionModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    loadIntakes();
+  </script>
+</body>
+</html>

@@ -1229,6 +1229,238 @@ app.delete('/api/templates/:id', requireBuilderAuth, (req, res) => {
 });
 
 // ============================================
+// INTAKE FORMS MODULE
+// ============================================
+
+const INTAKE_DIR = path.join(DATA_DIR, 'intake');
+if (!fs.existsSync(INTAKE_DIR)) fs.mkdirSync(INTAKE_DIR, { recursive: true });
+
+function generateIntakeId() {
+  const counter = getCounter();
+  const currentYear = new Date().getFullYear();
+  const yy = String(currentYear).slice(-2);
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `FT${yy}I${rand}`;
+}
+
+function readIntake(id) {
+  const fp = path.join(INTAKE_DIR, `${id}.json`);
+  if (!fs.existsSync(fp)) return null;
+  try { return JSON.parse(fs.readFileSync(fp, 'utf8')); } catch (e) { return null; }
+}
+
+function writeIntake(data) {
+  const fp = path.join(INTAKE_DIR, `${data.id}.json`);
+  fs.writeFileSync(fp, JSON.stringify(data, null, 2), 'utf8');
+}
+
+// GET /intake/:id — serve the client-facing intake form page
+app.get('/intake/:id', (req, res) => {
+  const intake = readIntake(req.params.id);
+  if (!intake) return res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+  if (intake.status === 'submitted') {
+    return res.sendFile(path.join(__dirname, 'public', 'intake-submitted.html'));
+  }
+  res.sendFile(path.join(__dirname, 'public', 'intake.html'));
+});
+
+// GET /api/intake — list all intake forms (protected)
+app.get('/api/intake', requireBuilderAuth, (req, res) => {
+  try {
+    const files = fs.readdirSync(INTAKE_DIR).filter(f => f.endsWith('.json'));
+    const forms = files.map(f => {
+      try {
+        const d = JSON.parse(fs.readFileSync(path.join(INTAKE_DIR, f), 'utf8'));
+        return {
+          id: d.id,
+          ghl_contact_id: d.ghl_contact_id || '',
+          client_name: d.client_name || '',
+          client_email: d.client_email || '',
+          client_company: d.client_company || '',
+          status: d.status || 'pending',
+          created_at: d.created_at || '',
+          submitted_at: d.submitted_at || null,
+          url: `/intake/${d.id}`
+        };
+      } catch (e) { return null; }
+    }).filter(Boolean);
+    forms.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return res.json({ forms });
+  } catch (err) {
+    return res.status(500).json({ error: 'Error listing intake forms' });
+  }
+});
+
+// GET /api/intake/:id — get a single intake form (public — needed by the form page)
+app.get('/api/intake/:id', (req, res) => {
+  const intake = readIntake(req.params.id);
+  if (!intake) return res.status(404).json({ error: 'Intake form not found' });
+  return res.json(intake);
+});
+
+// POST /api/intake — create a new intake form link (protected)
+app.post('/api/intake', requireBuilderAuth, (req, res) => {
+  const { ghl_contact_id, client_name, client_email, client_phone, client_company } = req.body;
+  if (!ghl_contact_id) return res.status(400).json({ error: 'ghl_contact_id is required' });
+  const id = generateIntakeId();
+  const now = new Date().toISOString();
+  const intake = {
+    id,
+    ghl_contact_id,
+    client_name: client_name || '',
+    client_email: client_email || '',
+    client_phone: client_phone || '',
+    client_company: client_company || '',
+    status: 'pending',
+    created_at: now,
+    submitted_at: null,
+    submission: null
+  };
+  writeIntake(intake);
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'proposals.flowtier.io';
+  const url = `${protocol}://${host}/intake/${id}`;
+  console.log(`[Intake] Created: ${id} for GHL contact ${ghl_contact_id}`);
+  return res.json({ success: true, id, url });
+});
+
+// POST /api/intake/:id/submit — client submits the intake form (public)
+app.post('/api/intake/:id/submit', async (req, res) => {
+  const intake = readIntake(req.params.id);
+  if (!intake) return res.status(404).json({ error: 'Intake form not found' });
+  if (intake.status === 'submitted') return res.status(400).json({ error: 'Form already submitted' });
+
+  const submission = req.body;
+  const now = new Date().toISOString();
+  intake.status = 'submitted';
+  intake.submitted_at = now;
+  intake.submission = submission;
+  // Update client info from submission (form uses: name, email, phone, business_name)
+  if (submission.name) intake.client_name = submission.name;
+  if (submission.email) intake.client_email = submission.email;
+  if (submission.phone) intake.client_phone = submission.phone;
+  if (submission.business_name) intake.client_company = submission.business_name;
+  writeIntake(intake);
+
+  console.log(`[Intake] Submitted: ${intake.id} by ${intake.client_name || intake.client_email}`);
+
+  // Fire webhook
+  sendWebhookNotification('intake_submitted', {
+    intake_id: intake.id,
+    ghl_contact_id: intake.ghl_contact_id,
+    lead_id: intake.ghl_contact_id,
+    client: {
+      name: intake.client_name,
+      email: intake.client_email,
+      phone: intake.client_phone,
+      company: intake.client_company
+    },
+    submitted_at: now,
+    submission
+  }).catch(err => console.error('[Intake Webhook] Error:', err));
+
+  return res.json({ success: true });
+});
+
+// DELETE /api/intake/:id — delete an intake form (protected)
+app.delete('/api/intake/:id', requireBuilderAuth, (req, res) => {
+  const fp = path.join(INTAKE_DIR, `${req.params.id}.json`);
+  if (!fs.existsSync(fp)) return res.status(404).json({ error: 'Not found' });
+  try {
+    fs.unlinkSync(fp);
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to delete' });
+  }
+});
+
+// GET /api/intake/:id/export-md — export submission as Markdown (protected)
+app.get('/api/intake/:id/export-md', requireBuilderAuth, (req, res) => {
+  const intake = readIntake(req.params.id);
+  if (!intake) return res.status(404).send('Not found');
+  if (!intake.submission) return res.status(400).send('No submission yet');
+
+  const s = intake.submission;
+  const lines = [];
+  lines.push(`# AI Front Office Onboarding — ${intake.client_name || intake.id}`);
+  lines.push(``);
+  lines.push(`**GHL Contact ID:** ${intake.ghl_contact_id || '—'}`);
+  lines.push(`**Submitted:** ${intake.submitted_at || '—'}`);
+  lines.push(`**Company:** ${intake.client_company || '—'}`);
+  lines.push(`**Email:** ${intake.client_email || '—'}`);
+  lines.push(`**Phone:** ${intake.client_phone || '—'}`);
+  lines.push(``);
+
+  const sections = [
+    { title: 'Contact Info', keys: ['name','business_name','email','phone'] },
+    { title: 'Primary Goal', keys: ['primary_goal','primary_goal_other','video_step','video_url','booking_link','website','checkout_link','reviews_link','other_links'] },
+    { title: 'About Your Business', keys: ['business_type','years_in_business','main_service','other_services','service_area','team_size','business_hours','peak_season'] },
+    { title: 'Current Setup', keys: ['crm','crm_other','current_followup','current_followup_other','biggest_challenge','monthly_revenue','avg_ticket'] },
+    { title: 'Channels', keys: ['ch_sms','ch_chat','ch_ig','ch_fb','ch_wa','ch_email','ch_voice','channel_preferences'] },
+    { title: 'Voice Agent', keys: ['voice_agent','voice_gender','voice_style','ai_intro','transfer_triggers','recording','voice_other'] },
+    { title: 'AI Personality', keys: ['ai_name','tone','use_emojis','use_firstname','use_jargon','use_humor','voice_samples'] },
+    { title: 'Credibility', keys: ['founder_name','founder_bio','proof_points','awards','differentiators'] },
+    { title: 'Lead Qualification', keys: ['qualify_questions','disqualify_criteria'] },
+    { title: 'Objections', keys: ['objections'] },
+    { title: 'Differentiation', keys: ['vs_competitors','unique_value'] },
+    { title: 'Booking', keys: ['booking_system','booking_max_per_day','booking_preferred_times','booking_auth','post_booking','pre_appt_instructions'] },
+    { title: 'Rules & Guardrails', keys: ['forbidden_actions','compliance_rules','emergency_action','emergency_detail'] },
+    { title: 'Follow-Ups', keys: ['followup','followup_first','followup_second','followup_max','followup_stop','followup_tone'] },
+    { title: 'Current Leads', keys: ['monthly_leads','current_response_time','lead_sources','lead_sources_other','conversion_rate'] },
+    { title: 'Supporting Materials', keys: ['materials','materials_delivery','signature'] }
+  ];
+
+  sections.forEach(sec => {
+    const hasData = sec.keys.some(k => s[k] !== undefined && s[k] !== '' && s[k] !== false);
+    if (!hasData) return;
+    lines.push(`## ${sec.title}`);
+    lines.push(``);
+    sec.keys.forEach(k => {
+      const val = s[k];
+      if (val === undefined || val === '' || val === false) return;
+      const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const display = Array.isArray(val) ? val.join(', ') : String(val);
+      lines.push(`**${label}:** ${display}`);
+    });
+    lines.push(``);
+  });
+
+  // FAQs
+  const faqKeys = Object.keys(s).filter(k => k.startsWith('faq_q'));
+  if (faqKeys.length > 0) {
+    lines.push(`## FAQs`);
+    lines.push(``);
+    faqKeys.forEach(qk => {
+      const num = qk.replace('faq_q', '');
+      const q = s[qk]; const a = s[`faq_a${num}`];
+      if (q) { lines.push(`**Q:** ${q}`); lines.push(`**A:** ${a || '—'}`); lines.push(``); }
+    });
+  }
+
+  // Scenarios
+  const scKeys = Object.keys(s).filter(k => k.match(/^sc\d+_trigger$/));
+  if (scKeys.length > 0) {
+    lines.push(`## Common Scenarios`);
+    lines.push(``);
+    scKeys.forEach(tk => {
+      const num = tk.replace('sc','').replace('_trigger','');
+      const trigger = s[tk]; const response = s[`sc${num}_response`];
+      if (trigger) { lines.push(`**Trigger:** ${trigger}`); lines.push(`**Response:** ${response || '—'}`); lines.push(``); }
+    });
+  }
+
+  const md = lines.join('\n');
+  res.setHeader('Content-Type', 'text/markdown');
+  res.setHeader('Content-Disposition', `attachment; filename="${intake.id}-intake.md"`);
+  return res.send(md);
+});
+
+// GET /intakes — dashboard for intake forms (protected)
+app.get('/intakes', requireBuilderAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'intakes.html'));
+});
+
+// ============================================
 // START SERVER
 // ============================================
 app.listen(PORT, '0.0.0.0', () => {
