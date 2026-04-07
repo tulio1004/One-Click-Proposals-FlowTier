@@ -27,6 +27,9 @@ const stripe = STRIPE_SECRET_KEY ? require('stripe')(STRIPE_SECRET_KEY) : null;
 // CRM (Lead Manager) base URL for cross-system integration
 const CRM_BASE = process.env.CRM_BASE_URL || 'https://leads.flowtier.io';
 
+// Internal API key for cross-system calls (Lead Manager -> Proposals)
+const INTAKE_API_KEY = process.env.INTAKE_API_KEY || 'ft-intake-2026-flowtier';
+
 // Ensure directories exist
 [DATA_DIR, CONFIG_DIR, TEMPLATES_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -1299,7 +1302,14 @@ app.get('/api/intake/:id', (req, res) => {
 });
 
 // POST /api/intake — create a new intake form link (protected)
-app.post('/api/intake', requireBuilderAuth, (req, res) => {
+// Accepts either a valid session cookie OR the X-Intake-Key header (for cross-system calls from Lead Manager)
+function requireIntakeAuth(req, res, next) {
+  const key = req.headers['x-intake-key'];
+  if (key && key === INTAKE_API_KEY) return next();
+  return requireBuilderAuth(req, res, next);
+}
+
+app.post('/api/intake', requireIntakeAuth, (req, res) => {
   const { ghl_contact_id, client_name, client_email, client_phone, client_company } = req.body;
   if (!ghl_contact_id) return res.status(400).json({ error: 'ghl_contact_id is required' });
   const id = generateIntakeId();
